@@ -18,25 +18,21 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
         self.metric_type: str = "accuracy"
         self.sv_algorithm = None
         self.sv_algorithm_cls = sv_algorithm_cls
-        self.shapley_values: dict = {}
-        self.shapley_values_S: dict = {}
-
-    @property
-    def config(self):
-        return self._server.config
+        self.shapley_values: dict[int, dict] = {}
+        self.shapley_values_S: dict[int, dict] = {}
 
     @property
     def choose_best_subset(self) -> bool:
         return self.config.algorithm_kwargs.get("choose_best_subset", False)
 
-    def _get_players(self) -> Iterable:
+    def __get_players(self) -> Iterable[int]:
         return sorted(self._all_worker_data.keys())
 
     def aggregate_worker_data(self) -> ParameterMessage:
         if self.sv_algorithm is None:
             assert self._server.round_index == 1
             self.sv_algorithm = self.sv_algorithm_cls(
-                players=self._get_players(),
+                players=self.__get_players(),
                 last_round_metric=self._server.performance_stat[
                     self._server.round_index - 1
                 ][f"test_{self.metric_type}"],
@@ -45,12 +41,12 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
         self.sv_algorithm.set_metric_function(self._get_subset_metric)
         self.sv_algorithm.compute(round_number=self._server.round_index)
         self.shapley_values[self._server.round_index] = copy.deepcopy(
-            self._convert_shapley_values(self.sv_algorithm.shapley_values)
-        )
-        self.shapley_values_S[self._server.round_index] = self._convert_shapley_values(
-            self.sv_algorithm.shapley_values_S
+            self.sv_algorithm.shapley_values
         )
         if self.choose_best_subset:
+            self.shapley_values_S[self._server.round_index] = (
+                self.sv_algorithm.shapley_values_S
+            )
             best_subset: set = set(
                 self.shapley_values_S[self._server.round_index].keys()
             )
@@ -60,9 +56,6 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
                     k: v for k, v in self._all_worker_data.items() if k in best_subset
                 }
         return super().aggregate_worker_data()
-
-    def _convert_shapley_values(self, shapley_values: dict) -> dict:
-        return shapley_values
 
     def _get_subset_metric(self, subset) -> dict:
         assert subset

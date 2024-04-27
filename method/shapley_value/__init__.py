@@ -18,5 +18,5 @@ CentralizedAlgorithmFactory.register_algorithm(
 CentralizedAlgorithmFactory.register_algorithm(
     algorithm_name="interval_shapley_value",
     client_cls=AggregationWorker,
-    server_cls=InterValShapleyValueServer,
+    server_cls=IntervalShapleyValueServer,
 )
