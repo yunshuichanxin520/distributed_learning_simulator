@@ -1,5 +1,3 @@
-import functools
-
 import numpy as np
 import pandas as pd
 from cyy_naive_lib.log import log_info
@@ -9,13 +7,10 @@ from .shapley_value_algorithm import ShapleyValueAlgorithm
 
 
 class IntervalShapleyValue(ShapleyValue):
-    def __init__(
-        self, players: list, last_round_metric: float = 0, LAMBDA: float = 0.9904
-    ) -> None:
+    def __init__(self, players: list, last_round_metric: float = 0) -> None:
         super().__init__(players=players, last_round_metric=last_round_metric)
         self.shapley_values: dict = {}
         self.metrics: dict = {}  # 新增属性来保存metrics字典
-        self.LAMBDA = LAMBDA
         self.last_round_number = 0
 
     def compute(self, round_number: int) -> None:
@@ -41,7 +36,7 @@ class IntervalShapleyValue(ShapleyValue):
         subsets_with_first = [(nums[0],) + subset for subset in subsets_without_first]
         return subsets_with_first + subsets_without_first
 
-    def exit(self):
+    def exit(self, config):
         # 拿到效用以后的计算过程
         # 定义区间效用的字典
         interval_min = {}
@@ -79,9 +74,10 @@ class IntervalShapleyValue(ShapleyValue):
         # 定义存放参与者贡献的两个列表
         fai_min_list = []
         fai_max_list = []
+        LAMBDA = config.algorithm_kwargs["lambda"]
         # 利用矩阵计算公式进行计算
-        fai_min_list = np.dot(M_MIN, E_mat) - self.LAMBDA * np.dot(M_MAX, F_mat)
-        fai_max_list = np.dot(M_MAX, E_mat) - self.LAMBDA * np.dot(M_MIN, F_mat)
+        fai_min_list = np.dot(M_MIN, E_mat) - LAMBDA * np.dot(M_MAX, F_mat)
+        fai_max_list = np.dot(M_MAX, E_mat) - LAMBDA * np.dot(M_MIN, F_mat)
         # 将列表合并为区间
         self.shapley_values[self.last_round_number] = dict(
             zip(sorted_subsets, zip(fai_min_list, fai_max_list))
@@ -91,6 +87,3 @@ class IntervalShapleyValue(ShapleyValue):
 class IntervalShapleyValueAlgorithm(ShapleyValueAlgorithm):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(IntervalShapleyValue, *args, **kwargs)
-        self.sv_algorithm_cls = functools.partial(
-            IntervalShapleyValue, LAMBDA=self.config.algorithm_kwargs["lambda"]
-        )
