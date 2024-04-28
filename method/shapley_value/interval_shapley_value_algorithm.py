@@ -40,7 +40,7 @@ class IntervalShapleyValue(ShapleyValue):
         # 拿到效用以后的计算过程
         # 定义区间效用的字典
         interval_min = {}
-        for round_metric in self.metrics.values():
+        for round_metric in self.metrics.items():
             for subset, metric in round_metric.items():
                 if subset not in interval_min:
                     interval_min[subset] = metric
@@ -48,7 +48,7 @@ class IntervalShapleyValue(ShapleyValue):
                     interval_min[subset] = min(metric, interval_min[subset])
 
         interval_max = {}
-        for subset, metric in self.metrics.values():
+        for subset, metric in self.metrics.items():
             if subset not in interval_max:
                 interval_max[subset] = metric
             else:
