@@ -1,3 +1,4 @@
+pandas
 hydra-core
 dill
 numpy
