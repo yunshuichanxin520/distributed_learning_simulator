@@ -36,6 +36,7 @@ class IntervalShapleyValue(ShapleyValue):
             return
         self.last_round_metric = this_round_metric
 
+        self.metrics[round_number] = {}
         for subset in self.powerset(self.complete_player_indices):
             subset = tuple(sorted(subset))
             if not subset:
