@@ -10,7 +10,7 @@ class IntervalShapleyValue(ShapleyValue):
     def __init__(self, players: list, last_round_metric: float = 0) -> None:
         super().__init__(players=players, last_round_metric=last_round_metric)
         self.shapley_values: dict = {}
-        self.metrics: dict = {}  # 新增属性来保存metrics字典
+        self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.last_round_number = 0
 
     def compute(self, round_number: int) -> None:
@@ -40,11 +40,12 @@ class IntervalShapleyValue(ShapleyValue):
         # 拿到效用以后的计算过程
         # 定义区间效用的字典
         interval_min = {}
-        for subset, metric in self.metrics.values():
-            if subset not in interval_min:
-                interval_min[subset] = metric
-            else:
-                interval_min[subset] = min(metric, interval_min[subset])
+        for round_metric in self.metrics.values():
+            for subset, metric in round_metric.items():
+                if subset not in interval_min:
+                    interval_min[subset] = metric
+                else:
+                    interval_min[subset] = min(metric, interval_min[subset])
 
         interval_max = {}
         for subset, metric in self.metrics.values():
