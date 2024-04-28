@@ -25,7 +25,10 @@ class IntervalShapleyValue(ShapleyValue):
         this_round_metric = self.metric_fun(self.complete_player_indices)
         assert self.config is not None
         round_trunc_threshold = self.config.algorithm_kwargs["round_trunc_threshold"]
-        if abs(this_round_metric - self.last_round_metric) <= round_trunc_threshold:
+        if (
+            self.metrics
+            and abs(this_round_metric - self.last_round_metric) <= round_trunc_threshold
+        ):
             log_info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
                 round_number,
