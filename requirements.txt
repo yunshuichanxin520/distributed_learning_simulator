@@ -2,6 +2,7 @@ hydra-core
 dill
 numpy
 pandas
+xlrd
 gevent
 colorlog
 psutil

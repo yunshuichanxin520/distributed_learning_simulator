@@ -1,23 +1,49 @@
 import numpy as np
 import pandas as pd
-from cyy_naive_lib.log import log_info
+from cyy_naive_lib.log import log_info, log_warning
 from cyy_torch_algorithm.shapely_value.shapley_value import ShapleyValue
 
 from .shapley_value_algorithm import ShapleyValueAlgorithm
 
 
 class IntervalShapleyValue(ShapleyValue):
-    def __init__(self, players: list, last_round_metric: float = 0) -> None:
+    def __init__(
+        self,
+        players: list,
+        last_round_metric: float = 0,
+        round_trunc_threshold: float | None = None,
+    ) -> None:
         super().__init__(players=players, last_round_metric=last_round_metric)
         self.shapley_values: dict = {}
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.last_round_number = 0
+        self.round_trunc_threshold = round_trunc_threshold
 
     def compute(self, round_number: int) -> None:
         # 初始化metrics字典，包含空集的度量值
         self.metrics[round_number] = {}
         self.last_round_number = round_number
         assert self.metric_fun is not None
+        metrics: dict = {(): self.last_round_metric}
+        this_round_metric = self.metric_fun(self.complete_player_indices)
+        if this_round_metric is None:
+            log_warning("force stop")
+            return
+        metrics[self.complete_player_indices] = this_round_metric
+        if self.round_trunc_threshold is not None and (
+                abs(this_round_metric - self.last_round_metric)
+                <= self.round_trunc_threshold
+        ):
+            log_info(
+                "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
+                round_number,
+                this_round_metric,
+                self.last_round_metric,
+                self.round_trunc_threshold,
+            )
+            self.last_round_metric = this_round_metric
+            return
+
         for subset in self.powerset(self.complete_player_indices):
             subset = tuple(sorted(subset))
             if not subset:
@@ -40,19 +66,19 @@ class IntervalShapleyValue(ShapleyValue):
         # 拿到效用以后的计算过程
         # 定义区间效用的字典
         interval_min = {}
-        for round_metric in self.metrics.items():
+        interval_max = {}
+        for round_metric in self.metrics.values():
             for subset, metric in round_metric.items():
                 if subset not in interval_min:
                     interval_min[subset] = metric
                 else:
                     interval_min[subset] = min(metric, interval_min[subset])
 
-        interval_max = {}
-        for subset, metric in self.metrics.items():
-            if subset not in interval_max:
-                interval_max[subset] = metric
-            else:
-                interval_max[subset] = max(metric, interval_max[subset])
+            for subset, metric in round_metric.items():
+                if subset not in interval_max:
+                    interval_max[subset] = metric
+                else:
+                    interval_max[subset] = max(metric, interval_max[subset])
 
         # 定义区间上（下）限的列表，并存入相应的值 维度（1, 1024）
 
@@ -65,10 +91,11 @@ class IntervalShapleyValue(ShapleyValue):
             M_MIN.append(interval_min[subset])
             # 从interval_max提取值并添加到M_MAX
             M_MAX.append(interval_max[subset])
-
+        print(M_MIN)
+        print(M_MAX)
         # 导入E和F 维度（1024，10）目前先这样,后边可以尝试连接matlab自动生成(参数是_lambda和players)
-        E = pd.read_excel("E.xls")
-        F = pd.read_excel("F.xls")
+        E = pd.read_excel("data_E_F/E_8_1.xls")
+        F = pd.read_excel("data_E_F/F_8_1.xls")
         E_mat = E.values
         F_mat = F.values
 
@@ -83,7 +110,8 @@ class IntervalShapleyValue(ShapleyValue):
         self.shapley_values[self.last_round_number] = dict(
             zip(sorted_subsets, zip(fai_min_list, fai_max_list))
         )
-
+        print(fai_min_list)
+        print(fai_max_list)
 
 class IntervalShapleyValueAlgorithm(ShapleyValueAlgorithm):
     def __init__(self, *args, **kwargs) -> None:
