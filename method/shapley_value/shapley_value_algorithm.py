@@ -72,6 +72,7 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
         assert self.sv_algorithm is not None
         if hasattr(self.sv_algorithm, "exit"):
             self.sv_algorithm.exit(config=self.config)
+            self.shapley_values = copy.deepcopy(self.sv_algorithm.shapley_values)
         with open(
             os.path.join(self.config.save_dir, "shapley_values.json"),
             "wt",
