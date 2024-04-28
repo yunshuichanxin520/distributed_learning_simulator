@@ -25,7 +25,10 @@ class IntervalShapleyValue(ShapleyValue):
         this_round_metric = self.metric_fun(self.complete_player_indices)
         assert self.config is not None
         round_trunc_threshold = self.config.algorithm_kwargs["round_trunc_threshold"]
-        if abs(this_round_metric - self.last_round_metric) <= round_trunc_threshold:
+        if (
+            self.metrics
+            and abs(this_round_metric - self.last_round_metric) <= round_trunc_threshold
+        ):
             log_info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
                 round_number,
@@ -102,7 +105,7 @@ class IntervalShapleyValue(ShapleyValue):
         fai_min_list = np.dot(M_MIN, E_mat) - LAMBDA * np.dot(M_MAX, F_mat)
         fai_max_list = np.dot(M_MAX, E_mat) - LAMBDA * np.dot(M_MIN, F_mat)
         # 将列表合并为区间
-        self.shapley_values = dict(zip(sorted_subsets, zip(fai_min_list, fai_max_list)))
+        self.shapley_values = zip(fai_min_list, fai_max_list)
         print(fai_min_list)
         print(fai_max_list)
 
