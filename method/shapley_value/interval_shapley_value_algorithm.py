@@ -42,7 +42,7 @@ class IntervalShapleyValue(ShapleyValue):
                 metric = 0
             else:
                 metric = self.metric_fun(subset)
-            self.metrics[round_number][subset] = metric
+                self.metrics[round_number][subset] = metric
             log_info("round %s subset %s metric %s", round_number, subset, metric)
 
     # 按照区间shapley值的计算公式要求生成所有子集的正确排序
