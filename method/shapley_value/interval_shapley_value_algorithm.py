@@ -105,7 +105,7 @@ class IntervalShapleyValue(ShapleyValue):
         fai_min_list = np.dot(M_MIN, E_mat) - LAMBDA * np.dot(M_MAX, F_mat)
         fai_max_list = np.dot(M_MAX, E_mat) - LAMBDA * np.dot(M_MIN, F_mat)
         # 将列表合并为区间
-        self.shapley_values = dict(zip(sorted_subsets, zip(fai_min_list, fai_max_list)))
+        self.shapley_values = zip(fai_min_list, fai_max_list)
         print(fai_min_list)
         print(fai_max_list)
 
