@@ -37,6 +37,8 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
                     self._server.round_index - 1
                 ][f"test_{self.metric_type}"],
             )
+            if hasattr(self.sv_algorithm, "config"):
+                self.sv_algorithm.config = self.config
         assert self.sv_algorithm is not None
         self.sv_algorithm.set_metric_function(self._get_subset_metric)
         self.sv_algorithm.compute(round_number=self._server.round_index)
@@ -71,7 +73,7 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
     def exit(self) -> None:
         assert self.sv_algorithm is not None
         if hasattr(self.sv_algorithm, "exit"):
-            self.sv_algorithm.exit(config=self.config)
+            self.sv_algorithm.exit()
             self.shapley_values = copy.deepcopy(self.sv_algorithm.shapley_values)
         with open(
             os.path.join(self.config.save_dir, "shapley_values.json"),

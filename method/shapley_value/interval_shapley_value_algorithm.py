@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
-from cyy_naive_lib.log import log_info, log_warning
+from cyy_naive_lib.log import log_info
 from cyy_torch_algorithm.shapely_value.shapley_value import ShapleyValue
-from cyy_torch_toolbox import config
+from distributed_learning_simulation import DistributedTrainingConfig
+
 from .shapley_value_algorithm import ShapleyValueAlgorithm
 
 
@@ -16,21 +17,15 @@ class IntervalShapleyValue(ShapleyValue):
         self.shapley_values: dict = {}
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.last_round_number = 0
+        self.config: None | DistributedTrainingConfig = None
 
     def compute(self, round_number: int) -> None:
-        # 初始化metrics字典，包含空集的度量值
-        self.metrics[round_number] = {}
         self.last_round_number = round_number
         assert self.metric_fun is not None
-        metrics: dict = {(): self.last_round_metric}
         this_round_metric = self.metric_fun(self.complete_player_indices)
-        if this_round_metric is None:
-            log_warning("force stop")
-            return
-        metrics[self.complete_player_indices] = this_round_metric
+        assert self.config is not None
         round_trunc_threshold = self.config.algorithm_kwargs["round_trunc_threshold"]
         if abs(this_round_metric - self.last_round_metric) <= round_trunc_threshold:
-
             log_info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
                 round_number,
@@ -39,6 +34,7 @@ class IntervalShapleyValue(ShapleyValue):
             )
             self.last_round_metric = this_round_metric
             return
+        self.last_round_metric = this_round_metric
 
         for subset in self.powerset(self.complete_player_indices):
             subset = tuple(sorted(subset))
@@ -58,7 +54,7 @@ class IntervalShapleyValue(ShapleyValue):
         subsets_with_first = [(nums[0],) + subset for subset in subsets_without_first]
         return subsets_with_first + subsets_without_first
 
-    def exit(self, config):
+    def exit(self) -> None:
         # 拿到效用以后的计算过程
         # 定义区间效用的字典
         interval_min = {}
@@ -98,7 +94,8 @@ class IntervalShapleyValue(ShapleyValue):
         # 定义存放参与者贡献的两个列表
         fai_min_list = []
         fai_max_list = []
-        LAMBDA = config.algorithm_kwargs["lambda"]
+        assert self.config is not None
+        LAMBDA = self.config.algorithm_kwargs["lambda"]
         # 利用矩阵计算公式进行计算
         fai_min_list = np.dot(M_MIN, E_mat) - LAMBDA * np.dot(M_MAX, F_mat)
         fai_max_list = np.dot(M_MAX, E_mat) - LAMBDA * np.dot(M_MIN, F_mat)
