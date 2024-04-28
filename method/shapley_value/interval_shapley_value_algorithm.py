@@ -31,6 +31,7 @@ class IntervalShapleyValue(ShapleyValue):
                 round_number,
                 this_round_metric,
                 self.last_round_metric,
+                round_trunc_threshold,
             )
             self.last_round_metric = this_round_metric
             return
