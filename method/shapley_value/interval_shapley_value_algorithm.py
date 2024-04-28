@@ -14,7 +14,7 @@ class IntervalShapleyValue(ShapleyValue):
         last_round_metric: float = 0,
     ) -> None:
         super().__init__(players=players, last_round_metric=last_round_metric)
-        self.shapley_values: dict = {}
+        self.shapley_values: list = []
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.last_round_number = 0
         self.config: None | DistributedTrainingConfig = None
@@ -105,7 +105,7 @@ class IntervalShapleyValue(ShapleyValue):
         fai_min_list = np.dot(M_MIN, E_mat) - LAMBDA * np.dot(M_MAX, F_mat)
         fai_max_list = np.dot(M_MAX, E_mat) - LAMBDA * np.dot(M_MIN, F_mat)
         # 将列表合并为区间
-        self.shapley_values = zip(fai_min_list, fai_max_list)
+        self.shapley_values = list(zip(fai_min_list, fai_max_list))
         print(fai_min_list)
         print(fai_max_list)
 
