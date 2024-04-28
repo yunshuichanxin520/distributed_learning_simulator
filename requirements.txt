@@ -1,5 +1,7 @@
 hydra-core
 dill
+numpy
+pandas
 gevent
 colorlog
 psutil
