@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from cyy_naive_lib.log import log_info, log_warning
 from cyy_torch_algorithm.shapely_value.shapley_value import ShapleyValue
-
+from cyy_torch_toolbox import config
 from .shapley_value_algorithm import ShapleyValueAlgorithm
 
 
@@ -11,13 +11,11 @@ class IntervalShapleyValue(ShapleyValue):
         self,
         players: list,
         last_round_metric: float = 0,
-        round_trunc_threshold: float | None = None,
     ) -> None:
         super().__init__(players=players, last_round_metric=last_round_metric)
         self.shapley_values: dict = {}
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.last_round_number = 0
-        self.config.algorithm_kwargs["round_trunc_threshold"]
 
     def compute(self, round_number: int) -> None:
         # 初始化metrics字典，包含空集的度量值
@@ -30,17 +28,14 @@ class IntervalShapleyValue(ShapleyValue):
             log_warning("force stop")
             return
         metrics[self.complete_player_indices] = this_round_metric
-        assert self.round_trunc_threshold is not None
-        if self.round_trunc_threshold is not None and (
-            abs(this_round_metric - self.last_round_metric)
-            <= self.round_trunc_threshold
-        ):
+        round_trunc_threshold = self.config.algorithm_kwargs["round_trunc_threshold"]
+        if abs(this_round_metric - self.last_round_metric) <= round_trunc_threshold:
+
             log_info(
                 "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
                 round_number,
                 this_round_metric,
                 self.last_round_metric,
-                self.round_trunc_threshold,
             )
             self.last_round_metric = this_round_metric
             return
