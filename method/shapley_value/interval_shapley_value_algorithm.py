@@ -17,7 +17,7 @@ class IntervalShapleyValue(ShapleyValue):
         self.shapley_values: dict = {}
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.last_round_number = 0
-        self.round_trunc_threshold = round_trunc_threshold
+        self.config.algorithm_kwargs["round_trunc_threshold"]
 
     def compute(self, round_number: int) -> None:
         # 初始化metrics字典，包含空集的度量值
