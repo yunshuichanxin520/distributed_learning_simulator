@@ -39,7 +39,7 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
         for subset, metric in result_metrics.items():
             log_info("round %s subset %s metric %s", round_number, subset, metric)
 
-        self.metrics[round_number].update(**result_metrics)
+        self.metrics[round_number].update(result_metrics)
 
     # 按照区间shapley值的计算公式要求生成所有子集的正确排序
     @classmethod
