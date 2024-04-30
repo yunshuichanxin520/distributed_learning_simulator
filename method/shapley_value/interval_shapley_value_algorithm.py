@@ -24,16 +24,22 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
         super().compute(round_number=round_number)
 
     def _compute_impl(self, round_number: int) -> None:
-        assert self.metric_fun is not None
         self.metrics[round_number] = {}
+        subsets = set()
         for subset in self.powerset(self.complete_player_indices):
             subset = tuple(sorted(subset))
             if not subset:
                 metric = 0
+                self.metrics[round_number][subset] = metric
+                log_info("round %s subset %s metric %s", round_number, subset, metric)
             else:
-                metric = self.metric_fun(subset)
-            self.metrics[round_number][subset] = metric
+                subsets.add(subset)
+        assert self.batch_metric_fun is not None
+        result_metrics: dict = self.batch_metric_fun(subsets)
+        for subset, metric in result_metrics.items():
             log_info("round %s subset %s metric %s", round_number, subset, metric)
+
+        self.metrics[round_number].update(**result_metrics)
 
     # 按照区间shapley值的计算公式要求生成所有子集的正确排序
     @classmethod
@@ -95,7 +101,7 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
         print(fai_max_list)
 
     def get_result(self) -> list:
-        return self.shapely_value
+        return self.shapley_values
 
 
 class IntervalShapleyValueAlgorithm(ShapleyValueAlgorithm):
