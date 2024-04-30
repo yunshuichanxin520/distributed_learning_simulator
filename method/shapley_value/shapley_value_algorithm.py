@@ -33,6 +33,7 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
                     self._server.round_index - 1
                 ][f"test_{self.metric_type}"],
             )
+            self.__sv_algorithm.config=self.config
             assert isinstance(self.__sv_algorithm, RoundBasedShapleyValue)
         return self.__sv_algorithm
 
