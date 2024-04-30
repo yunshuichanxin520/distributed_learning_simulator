@@ -1,45 +1,30 @@
 import numpy as np
 import pandas as pd
 from cyy_naive_lib.log import log_info
-from cyy_torch_algorithm.shapely_value.shapley_value import ShapleyValue
+from cyy_torch_algorithm.shapely_value.shapley_value import \
+    RoundBasedShapleyValue
 from distributed_learning_simulation import DistributedTrainingConfig
 
 from .shapley_value_algorithm import ShapleyValueAlgorithm
 
 
-class IntervalShapleyValue(ShapleyValue):
-    def __init__(
-        self,
-        players: list,
-        last_round_metric: float = 0,
-    ) -> None:
-        super().__init__(players=players, last_round_metric=last_round_metric)
+class IntervalShapleyValue(RoundBasedShapleyValue):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.shapley_values: list = []
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.last_round_number = 0
         self.config: None | DistributedTrainingConfig = None
 
     def compute(self, round_number: int) -> None:
-        self.last_round_number = round_number
-        assert self.metric_fun is not None
-        this_round_metric = self.metric_fun(self.complete_player_indices)
         assert self.config is not None
-        round_trunc_threshold = self.config.algorithm_kwargs["round_trunc_threshold"]
-        if (
-            self.metrics
-            and abs(this_round_metric - self.last_round_metric) <= round_trunc_threshold
-        ):
-            log_info(
-                "skip round %s, this_round_metric %s last_round_metric %s round_trunc_threshold %s",
-                round_number,
-                this_round_metric,
-                self.last_round_metric,
-                round_trunc_threshold,
-            )
-            self.last_round_metric = this_round_metric
-            return
-        self.last_round_metric = this_round_metric
+        self.round_trunc_threshold = self.config.algorithm_kwargs[
+            "round_trunc_threshold"
+        ]
+        super().compute(round_number=round_number)
 
+    def _compute_impl(self, round_number: int) -> None:
+        assert self.metric_fun is not None
         self.metrics[round_number] = {}
         for subset in self.powerset(self.complete_player_indices):
             subset = tuple(sorted(subset))
@@ -108,6 +93,9 @@ class IntervalShapleyValue(ShapleyValue):
         self.shapley_values = list(zip(fai_min_list, fai_max_list))
         print(fai_min_list)
         print(fai_max_list)
+
+    def get_result(self) -> list:
+        return self.shapely_value
 
 
 class IntervalShapleyValueAlgorithm(ShapleyValueAlgorithm):

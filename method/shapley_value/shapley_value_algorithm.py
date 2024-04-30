@@ -1,9 +1,10 @@
-import copy
 import json
 import os
-from typing import Any, Iterable, Type
+from typing import Any, Type
 
 from cyy_naive_lib.log import get_logger
+from cyy_torch_algorithm.shapely_value.shapley_value import \
+    RoundBasedShapleyValue
 from distributed_learning_simulation import (AggregationServer,
                                              FedAVGAlgorithm, ParameterMessage)
 
@@ -16,41 +17,36 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
         self._server: AggregationServer = server
         self.accumulate = False
         self.metric_type: str = "accuracy"
-        self.sv_algorithm = None
+        self.__sv_algorithm: None | RoundBasedShapleyValue = None
         self.sv_algorithm_cls = sv_algorithm_cls
-        self.shapley_values: dict[int, dict] = {}
-        self.shapley_values_S: dict[int, dict] = {}
+
+    @property
+    def sv_algorithm(self) -> RoundBasedShapleyValue:
+        if self.__sv_algorithm is None:
+            assert self._all_worker_data
+            assert self._server.round_index == 1
+            self.__sv_algorithm = self.sv_algorithm_cls(
+                players=sorted(self._all_worker_data.keys()),
+                initial_metric=self._server.performance_stat[
+                    self._server.round_index - 1
+                ][f"test_{self.metric_type}"],
+            )
+            assert isinstance(self.__sv_algorithm, RoundBasedShapleyValue)
+            if hasattr(self.__sv_algorithm, "config"):
+                self.__sv_algorithm.config = self.config
+        return self.__sv_algorithm
 
     @property
     def choose_best_subset(self) -> bool:
         return self.config.algorithm_kwargs.get("choose_best_subset", False)
 
-    def __get_players(self) -> Iterable[int]:
-        return sorted(self._all_worker_data.keys())
-
     def aggregate_worker_data(self) -> ParameterMessage:
-        if self.sv_algorithm is None:
-            assert self._server.round_index == 1
-            self.sv_algorithm = self.sv_algorithm_cls(
-                players=self.__get_players(),
-                last_round_metric=self._server.performance_stat[
-                    self._server.round_index - 1
-                ][f"test_{self.metric_type}"],
-            )
-            if hasattr(self.sv_algorithm, "config"):
-                self.sv_algorithm.config = self.config
-        assert self.sv_algorithm is not None
         self.sv_algorithm.set_metric_function(self._get_subset_metric)
         self.sv_algorithm.compute(round_number=self._server.round_index)
-        self.shapley_values[self._server.round_index] = copy.deepcopy(
-            self.sv_algorithm.shapley_values
-        )
         if self.choose_best_subset:
-            self.shapley_values_S[self._server.round_index] = (
-                self.sv_algorithm.shapley_values_S
-            )
+            assert hasattr(self.sv_algorithm, "shapley_values_S")
             best_subset: set = set(
-                self.shapley_values_S[self._server.round_index].keys()
+                self.sv_algorithm.shapley_values_S[self._server.round_index].keys()
             )
             if best_subset:
                 get_logger().warning("use subset %s", best_subset)
@@ -72,19 +68,10 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
 
     def exit(self) -> None:
         assert self.sv_algorithm is not None
-        if hasattr(self.sv_algorithm, "exit"):
-            self.sv_algorithm.exit()
-            self.shapley_values = copy.deepcopy(self.sv_algorithm.shapley_values)
+        self.sv_algorithm.exit()
         with open(
             os.path.join(self.config.save_dir, "shapley_values.json"),
             "wt",
             encoding="utf8",
         ) as f:
-            json.dump(self.shapley_values, f)
-        if self.choose_best_subset:
-            with open(
-                os.path.join(self.config.save_dir, "shapley_values_S.json"),
-                "wt",
-                encoding="utf8",
-            ) as f:
-                json.dump(self.shapley_values_S, f)
+            json.dump(self.sv_algorithm.get_result(), f)
