@@ -5,6 +5,8 @@ from typing import Any, Type
 from cyy_naive_lib.log import get_logger
 from cyy_torch_algorithm.shapely_value.shapley_value import \
     RoundBasedShapleyValue
+from cyy_torch_toolbox.data_structure.torch_process_task_queue import \
+    TorchProcessTaskQueue
 from distributed_learning_simulation import (AggregationServer,
                                              FedAVGAlgorithm, ParameterMessage)
 
@@ -32,8 +34,6 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
                 ][f"test_{self.metric_type}"],
             )
             assert isinstance(self.__sv_algorithm, RoundBasedShapleyValue)
-            if hasattr(self.__sv_algorithm, "config"):
-                self.__sv_algorithm.config = self.config
         return self.__sv_algorithm
 
     @property
@@ -41,7 +41,7 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
         return self.config.algorithm_kwargs.get("choose_best_subset", False)
 
     def aggregate_worker_data(self) -> ParameterMessage:
-        self.sv_algorithm.set_metric_function(self._get_subset_metric)
+        self.sv_algorithm.set_batch_metric_function(self._get_batch_metric)
         self.sv_algorithm.compute(round_number=self._server.round_index)
         if self.choose_best_subset:
             assert hasattr(self.sv_algorithm, "shapley_values_S")
@@ -54,6 +54,34 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
                     k: v for k, v in self._all_worker_data.items() if k in best_subset
                 }
         return super().aggregate_worker_data()
+
+    def _batch_metric_worker(self, task, **kwargs) -> dict:
+        return {task: self._get_subset_metric(subset=task)}
+
+    def _get_batch_metric(self, subsets) -> dict:
+        if len(subsets) == 1:
+            return {list(subsets)[0]: self._get_subset_metric(list(subsets)[0])}
+
+        queue = TorchProcessTaskQueue()
+        queue.disable_logger()
+        queue.start(worker_fun=self._batch_metric_worker)
+        result: dict = {}
+        cnt = 0
+        for subset in subsets:
+            cnt += 1
+            queue.add_task(subset)
+            while queue.has_data():
+                res = queue.get_data()
+                assert res is not None
+                res = res[0]
+                result |= res
+        for _ in range(cnt - len(result)):
+            res = queue.get_data()
+            assert res is not None
+            res = res[0]
+            result |= res
+        queue.stop()
+        return result
 
     def _get_subset_metric(self, subset) -> dict:
         assert subset
