@@ -16,13 +16,6 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
         self.last_round_number = 0
         self.config: None | DistributedTrainingConfig = None
 
-    def compute(self, round_number: int) -> None:
-        assert self.config is not None
-        self.round_trunc_threshold = self.config.algorithm_kwargs[
-            "round_trunc_threshold"
-        ]
-        super().compute(round_number=round_number)
-
     def _compute_impl(self, round_number: int) -> None:
         self.metrics[round_number] = {}
         subsets = set()

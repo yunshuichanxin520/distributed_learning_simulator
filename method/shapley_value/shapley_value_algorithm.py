@@ -33,8 +33,16 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
                     self._server.round_index - 1
                 ][f"test_{self.metric_type}"],
             )
-            self.__sv_algorithm.config=self.config
             assert isinstance(self.__sv_algorithm, RoundBasedShapleyValue)
+            if (
+                self.config.algorithm_kwargs.get("round_trunc_threshold", None)
+                is not None
+            ):
+                self.__sv_algorithm.set_round_truncation_threshold(
+                    self.config.algorithm_kwargs["round_trunc_threshold"]
+                )
+            self.__sv_algorithm.config = self.config
+            self.sv_algorithm.set_batch_metric_function(self._get_batch_metric)
         return self.__sv_algorithm
 
     @property
@@ -42,7 +50,6 @@ class ShapleyValueAlgorithm(FedAVGAlgorithm):
         return self.config.algorithm_kwargs.get("choose_best_subset", False)
 
     def aggregate_worker_data(self) -> ParameterMessage:
-        self.sv_algorithm.set_batch_metric_function(self._get_batch_metric)
         self.sv_algorithm.compute(round_number=self._server.round_index)
         if self.choose_best_subset:
             assert hasattr(self.sv_algorithm, "shapley_values_S")
