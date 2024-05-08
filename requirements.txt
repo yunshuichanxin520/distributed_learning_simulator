@@ -1,6 +1,8 @@
 hydra-core
 huggingface-hub
+datasets
 transformers
+spacy
 dill
 numpy
 pandas
