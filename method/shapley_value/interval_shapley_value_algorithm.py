@@ -4,8 +4,8 @@ from cyy_naive_lib.log import log_info
 from cyy_torch_algorithm.shapely_value.shapley_value import \
     RoundBasedShapleyValue
 from distributed_learning_simulation import DistributedTrainingConfig
-
-from .shapley_value_algorithm import ShapleyValueAlgorithm
+from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
+    ShapleyValueAlgorithm
 
 
 class IntervalShapleyValue(RoundBasedShapleyValue):
@@ -13,7 +13,6 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
         super().__init__(**kwargs)
         self.shapley_values: list = []
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
-        self.last_round_number = 0
         self.config: None | DistributedTrainingConfig = None
 
     def _compute_impl(self, round_number: int) -> None:
