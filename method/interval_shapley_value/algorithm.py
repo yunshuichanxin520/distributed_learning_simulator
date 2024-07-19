@@ -102,3 +102,10 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
 class IntervalShapleyValueAlgorithm(ShapleyValueAlgorithm):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(IntervalShapleyValue, *args, **kwargs)
+
+    @property
+    def sv_algorithm(self) -> IntervalShapleyValue:
+        algorithm = super().sv_algorithm
+        assert isinstance(algorithm, IntervalShapleyValue)
+        algorithm.config = self.config
+        return algorithm
