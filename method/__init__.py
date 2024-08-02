@@ -1,9 +1,6 @@
 import importlib
 import os
 
-from distributed_learning_simulation.dependency import \
-    import_results  # noqa: F401
-
 for entry in os.scandir(os.path.dirname(os.path.abspath(__file__))):
     if not entry.is_dir():
         continue
@@ -11,4 +8,9 @@ for entry in os.scandir(os.path.dirname(os.path.abspath(__file__))):
         continue
     if entry.name.startswith("."):
         continue
-    importlib.import_module(f".{entry.name}", "method")
+    try:
+        importlib.import_module(f".{entry.name}", "method")
+    except ModuleNotFoundError:
+        importlib.import_module(
+            f".{entry.name}", "distributed_learning_simulator.method"
+        )
