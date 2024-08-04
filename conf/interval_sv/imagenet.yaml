@@ -1,14 +1,17 @@
 ---
-dataset_name: CIFAR10
-model_name: densenet40
-distributed_algorithm: GTG_shapley_value
+dataset_name: ImageNet
+model_name: Resnet50
+distributed_algorithm: interval_shapley_value
 optimizer_name: SGD
 worker_number: 8
-batch_size: 64
 round: 100
 learning_rate_scheduler_name: CosineAnnealingLR
 epoch: 5
-learning_rate: 0.1
+batch_size: 128
+learning_rate: 0.01
+algorithm_kwargs:
+  lambda: 1
+  round_trunc_threshold: 0.005
 
 dataset_sampling: iid
 

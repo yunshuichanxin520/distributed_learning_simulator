@@ -1,14 +1,24 @@
 ---
-dataset_name: CIFAR10
-model_name: densenet40
-distributed_algorithm: GTG_shapley_value
+dataset_name: imdb
+model_name: TransformerClassificationModel
+distributed_algorithm: com_fed_shapley_value
 optimizer_name: SGD
 worker_number: 8
 batch_size: 64
 round: 100
 learning_rate_scheduler_name: CosineAnnealingLR
 epoch: 5
-learning_rate: 0.1
+learning_rate: 0.01
+dataset_kwargs:
+  input_max_len: 300
+  dataset_type: text
+  tokenizer:
+    type: spacy
+model_kwargs:
+  word_vector_name: glove.6B.100d
+  num_encoder_layer: 2
+  d_model: 100
+  nhead: 5
 
 dataset_sampling: iid
 
@@ -39,4 +49,3 @@ dataset_sampling: iid
 #dataset_sampling: dirichlet_split
 #dataset_sampling_kwargs:
 #  concentration: 0.5
-...
