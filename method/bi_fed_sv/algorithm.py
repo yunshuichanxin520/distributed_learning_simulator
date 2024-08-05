@@ -16,7 +16,6 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
     def _compute_impl(self, round_number: int) -> None:
         self.metrics[round_number] = {}
-        if 
         subsets = set()
         for subset in self.powerset(self.complete_player_indices):
             subset = tuple(sorted(subset))
