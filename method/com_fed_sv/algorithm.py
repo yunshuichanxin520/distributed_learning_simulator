@@ -1,16 +1,14 @@
-from functools import cached_property
-from itertools import combinations
+import operator as op
+from functools import cached_property, reduce
 
 import numpy as np
 from cyy_naive_lib.log import log_info
 from cyy_torch_algorithm.shapely_value.shapley_value import \
     RoundBasedShapleyValue
 from distributed_learning_simulation import DistributedTrainingConfig
-from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
-    ShapleyValueAlgorithm
+from distributed_learning_simulator.algorithm import ShapleyValueAlgorithm
 from lripy import drcomplete
-import operator as op
-from functools import reduce
+
 
 class ComFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
@@ -19,7 +17,9 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
         self.shapley_values: list = []
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.config: None | DistributedTrainingConfig = None
-        self.all_subsets = self.powerset(self.complete_player_indices)
+        self.all_subsets = [
+            tuple(sorted(s)) for s in self.powerset(self.complete_player_indices)
+        ]
 
     @cached_property
     def utilities_matrix(self):
@@ -73,12 +73,10 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
             else:
                 subsets.add(subset)
         assert self.batch_metric_fun is not None
-        result_metrics: dict = self.batch_metric_fun(subsets)
+        result_metrics: dict = {s: self.metric_fun(s) for s in subsets}
         # 将每个轮次中实际参与者的所有子集的效用对应到效用矩阵utilities_matrix中去
         for subset, metric in result_metrics.items():
-            self.utilities_matrix[round_index][
-                list(self.all_subsets).index(subset)
-            ] = metric
+            self.utilities_matrix[round_index][self.all_subsets.index(subset)] = metric
             log_info("round %s subset %s metric %s", round_index, subset, metric)
 
         self.metrics[round_index].update(result_metrics)
