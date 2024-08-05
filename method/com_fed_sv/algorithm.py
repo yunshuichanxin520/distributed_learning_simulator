@@ -22,6 +22,7 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
 
     @cached_property
     def utilities_matrix(self):
+        assert self.config is not None
         return np.zeros(
             (self.config.round, len(list(self.powerset(self.complete_player_indices))))
         )
@@ -30,6 +31,7 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
 
     # 定义计算comfedsv的方法,一旦获得补全的效用矩阵，便可以通过下面分方法计算comfedsv
     def compute_shapley_value_from_matrix(self, utility_matrix, all_subsets):
+        assert self.config is not None
         T = self.config.round
         N = self.config.worker_number
         sv_completed = np.zeros(N)
@@ -55,18 +57,8 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
         self.metrics[round_index] = {}
         subsets = set()
 
-        # 选择参与者，frac是可调的比例参数
-        m = max(int(self.frac * self.config.worker_number), 1)
-        # 强制规定第一轮N中的所有参与者必须参加，这是论文的假设条件
-        if round_index == 1:
-            index_players = list(range(self.config.worker_number))
-        else:
-            index_players = np.random.choice(
-                range(self.config.worker_number), m, replace=False
-            )
-
         # 计算被选中参与者所有子集的效用，这里我们使用metric来代替utility
-        for subset in self.powerset(index_players):
+        for subset in self.powerset(self.complete_player_indices):
             subset = tuple(sorted(subset))
             if not subset:
                 metric = 0
@@ -86,6 +78,7 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
         self.metrics[round_index].update(result_metrics)
 
     def exit(self) -> None:
+        assert self.config is not None
         # 利用lripy中的drcomplete方法补全效用矩阵，并调用compute_shapley_value_from_matrix方法计算
         mask = np.zeros(shape=(self.config.round, self.config.worker_number), dtype=int)
         utility_matrix_completed = drcomplete(self.utilities_matrix, mask, 3, 2)[0]
