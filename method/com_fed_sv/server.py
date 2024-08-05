@@ -9,8 +9,8 @@ class ComFedShapleyValueServer(ShapleyValueServer):
         super().__init__(**kwargs, algorithm=ComFedShapleyValueAlgorithm(server=self))
 
     def select_workers(self) -> set[int]:
-        if self.round_index == 1:
+        if not self.selection_result:
             result = set(range(self.worker_number))
-            self.selection_result[self.round_index] = result
+            self.selection_result[-1] = result
             return result
         return super().select_workers()
