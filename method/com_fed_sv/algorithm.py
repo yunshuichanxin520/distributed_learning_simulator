@@ -9,7 +9,6 @@ from distributed_learning_simulation import DistributedTrainingConfig
 from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
     ShapleyValueAlgorithm
 from lripy import drcomplete
-from scipy.sparse import csr_matrix
 
 
 class ComFedShapleyValue(RoundBasedShapleyValue):
