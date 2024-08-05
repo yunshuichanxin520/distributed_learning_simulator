@@ -47,7 +47,7 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
             sub_powerset = self.powerset(sub_list)
             for s in sub_powerset:
                 id1 = all_subsets.index(s)
-                id2 = all_subsets[tuple(sorted(list(s) + [i]))]
+                id2 = all_subsets.index(tuple(sorted(list(s) + [i])))
                 for t in range(T):
                     v1 = utility_matrix[t, id1]
                     v2 = utility_matrix[t, id2]
@@ -86,7 +86,6 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
         assert self.config is not None
         # 利用lripy中的drcomplete方法补全效用矩阵，并调用compute_shapley_value_from_matrix方法计算
         mask = np.zeros(shape=(self.config.round, len(self.all_subsets)), dtype=int)
-        print(mask.shape)
         # U = csr_matrix(np.multiply(self.utilities_matrix, mask))
         utility_matrix_completed = drcomplete(self.utilities_matrix, mask, 3, 2)[0]
         sv_completed = self.compute_shapley_value_from_matrix(
