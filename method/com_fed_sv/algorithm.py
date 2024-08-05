@@ -48,7 +48,6 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
             sub_powerset = self.powerset(sub_list)
             for s in sub_powerset:
                 id1 = all_subsets.index(s)
-                # id1 = all_subsets[s]
                 id2 = all_subsets[tuple(sorted(list(s) + [i]))]
                 for t in range(T):
                     v1 = utility_matrix[t, id1]
