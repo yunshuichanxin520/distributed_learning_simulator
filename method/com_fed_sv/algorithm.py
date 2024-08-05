@@ -9,7 +9,8 @@ from distributed_learning_simulation import DistributedTrainingConfig
 from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
     ShapleyValueAlgorithm
 from lripy import drcomplete
-
+import operator as op
+from functools import reduce
 
 class ComFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
@@ -27,7 +28,12 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
             (self.config.round, len(list(self.powerset(self.complete_player_indices))))
         )
 
-    #
+    # function for computing the combinatorial number
+    def ncr(self, n, r):
+        r = min(r, n - r)
+        numer = reduce(op.mul, range(n, n - r, -1), 1)
+        denom = reduce(op.mul, range(1, r + 1), 1)
+        return numer // denom
 
     # 定义计算comfedsv的方法,一旦获得补全的效用矩阵，便可以通过下面分方法计算comfedsv
     def compute_shapley_value_from_matrix(self, utility_matrix, all_subsets):
@@ -46,12 +52,12 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
                 for t in range(T):
                     v1 = utility_matrix[t, id1]
                     v2 = utility_matrix[t, id2]
-                    val = (v2 - v1) / combinations(N - 1, len(s))
+                    val = (v2 - v1) / self.ncr(N - 1, len(s))
                     sv_completed[i] += val
             sv_completed[i] /= N
         return sv_completed
 
-    # 计算bifedsv需要的效用矩阵的产生过程
+    # 计算comfedsv需要的效用矩阵的产生过程
     # 注意：这里每轮的参与者集合是动态变化的，这篇论文用的是每轮随机选取一定比例的客户端，后边我的论文bifedsv中是根据客户端的效用选择的
     def _compute_impl(self, round_index: int) -> None:
         self.metrics[round_index] = {}

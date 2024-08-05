@@ -5,7 +5,7 @@ distributed_algorithm: interval_shapley_value
 optimizer_name: SGD
 worker_number: 8
 batch_size: 64
-round: 20
+round: 5
 learning_rate_scheduler_name: CosineAnnealingLR
 epoch: 2
 learning_rate: 0.01
