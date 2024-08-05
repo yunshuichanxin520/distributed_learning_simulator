@@ -6,14 +6,13 @@ from cyy_naive_lib.log import log_info
 from cyy_torch_algorithm.shapely_value.shapley_value import \
     RoundBasedShapleyValue
 from distributed_learning_simulation import DistributedTrainingConfig
-from distributed_learning_simulator.algorithm import ShapleyValueAlgorithm
+from distributed_learning_simulator.algorithm.shapley_value_algorithm import ShapleyValueAlgorithm
 from lripy import drcomplete
 
 
 class ComFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.frac: float = 0.5
         self.shapley_values: list = []
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.config: None | DistributedTrainingConfig = None
