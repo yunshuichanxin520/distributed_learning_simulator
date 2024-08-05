@@ -3,7 +3,7 @@ dataset_name: imdb
 model_name: TransformerClassificationModel
 distributed_algorithm: GTG_shapley_value
 optimizer_name: SGD
-worker_number: 8
+worker_number: 6
 batch_size: 64
 round: 100
 learning_rate_scheduler_name: CosineAnnealingLR

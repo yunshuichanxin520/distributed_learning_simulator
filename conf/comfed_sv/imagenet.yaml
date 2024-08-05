@@ -3,7 +3,7 @@ dataset_name: ImageNet
 model_name: Resnet50
 distributed_algorithm: com_fed_shapley_value
 optimizer_name: SGD
-worker_number: 8
+worker_number: 6
 round: 100
 learning_rate_scheduler_name: CosineAnnealingLR
 epoch: 5

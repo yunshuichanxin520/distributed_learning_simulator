@@ -3,7 +3,7 @@ dataset_name: MNIST
 model_name: LeNet5
 distributed_algorithm: interval_shapley_value
 optimizer_name: SGD
-worker_number: 8
+worker_number: 6
 batch_size: 64
 round: 5
 learning_rate_scheduler_name: CosineAnnealingLR
