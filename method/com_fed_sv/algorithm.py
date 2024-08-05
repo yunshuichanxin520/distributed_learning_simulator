@@ -9,7 +9,6 @@ from distributed_learning_simulation import DistributedTrainingConfig
 from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
     ShapleyValueAlgorithm
 from lripy import drcomplete
-from scipy.sparse import csr_matrix
 
 
 class ComFedShapleyValue(RoundBasedShapleyValue):
@@ -48,8 +47,7 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
             sub_powerset = self.powerset(sub_list)
             for s in sub_powerset:
                 id1 = all_subsets.index(s)
-                # id1 = all_subsets[s]
-                id2 = all_subsets[tuple(sorted(list(s) + [i]))]
+                id2 = all_subsets.index(tuple(sorted(list(s) + [i])))
                 for t in range(T):
                     v1 = utility_matrix[t, id1]
                     v2 = utility_matrix[t, id2]
