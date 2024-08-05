@@ -9,6 +9,7 @@ from distributed_learning_simulation import DistributedTrainingConfig
 from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
     ShapleyValueAlgorithm
 from lripy import drcomplete
+from scipy.sparse import csr_matrix
 
 
 class ComFedShapleyValue(RoundBasedShapleyValue):
@@ -86,7 +87,9 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
     def exit(self) -> None:
         assert self.config is not None
         # 利用lripy中的drcomplete方法补全效用矩阵，并调用compute_shapley_value_from_matrix方法计算
-        mask = np.zeros(shape=(self.config.round, self.config.worker_number), dtype=int)
+        mask = np.zeros(shape=(self.config.round, len(self.all_subsets)), dtype=int)
+        print(mask.shape)
+        # U = csr_matrix(np.multiply(self.utilities_matrix, mask))
         utility_matrix_completed = drcomplete(self.utilities_matrix, mask, 3, 2)[0]
         sv_completed = self.compute_shapley_value_from_matrix(
             utility_matrix_completed, self.all_subsets
