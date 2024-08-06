@@ -1,3 +1,4 @@
+import copy
 import os
 
 import numpy as np
@@ -15,6 +16,7 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
         self.shapley_values: list = []
         self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.LAMBDA = algorithm_kwargs["lambda"]
+        self.complete_player_indices_backup = copy.copy(self.complete_player_indices)
 
     def _compute_impl(self, round_index: int) -> None:
         self.metrics[round_index] = {}
@@ -65,7 +67,7 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
 
         M_MIN = []
         M_MAX = []
-        sorted_subsets = self.sorted_subsets(self.complete_player_indices)
+        sorted_subsets = self.sorted_subsets(self.complete_player_indices_backup)
         # 根据正确的子集顺序提取并填入对应的效用值
         for subset in sorted_subsets:
             # 从interval_min提取值并添加到M_MIN
@@ -80,6 +82,8 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
         F = pd.read_excel(os.path.join(script_dir, "data_E_F", "F_6_1.xls"))
         E_mat = E.values
         F_mat = F.values
+        print(E_mat.shape)
+        print(F_mat.shape)
 
         # 定义存放参与者贡献的两个列表
         fai_min_list = []
