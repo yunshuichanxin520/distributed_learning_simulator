@@ -9,6 +9,8 @@ round: 100
 learning_rate_scheduler_name: CosineAnnealingLR
 epoch: 5
 learning_rate: 0.1
+algorithm_kwargs:
+  random_client_number: 3
 
 dataset_sampling: iid
 

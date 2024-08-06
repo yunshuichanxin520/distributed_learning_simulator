@@ -20,6 +20,8 @@ model_kwargs:
   d_model: 100
   nhead: 5
 
+algorithm_kwargs:
+  random_client_number: 3
 dataset_sampling: iid
 
 #dataset_sampling: iid_split_and_sample
