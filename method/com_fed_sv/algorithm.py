@@ -67,7 +67,7 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
             subset = tuple(sorted(subset))
             if not subset:
                 metric = 0
-                self.metrics[round_index - 1][subset] = metric
+                self.metrics[round_index - 1][self.get_players(subset)] = metric
                 log_info("round %s subset %s metric %s", round_index, subset, metric)
             else:
                 subsets.add(subset)
@@ -75,6 +75,7 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
         result_metrics: dict = {s: self.metric_fun(s) for s in subsets}
         # 将每个轮次中实际参与者的所有子集的效用对应到效用矩阵utilities_matrix中去
         for subset, metric in result_metrics.items():
+            subset = self.get_players(subset)
             self.utilities_matrix[round_index - 1][
                 self.all_subsets.index(subset)
             ] = metric
