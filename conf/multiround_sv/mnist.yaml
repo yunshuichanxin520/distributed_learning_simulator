@@ -12,6 +12,7 @@ epoch: 2
 learning_rate: 0.01
 
 dataset_sampling: iid
+
 #dataset_sampling: iid_split_and_sample
 #dataset_sampling_kwargs:
 #   sample_probs:
@@ -25,12 +26,12 @@ dataset_sampling: iid
 #dataset_sampling: iid_split_and_flip
 #dataset_sampling_kwargs:
 #  flip_percent:
+#    - 0.01
+#    - 0.01
 #    - 0.1
 #    - 0.1
-#    - 0.5
-#    - 0.5
-#    - 0.9
-#    - 0.9
+#    - 0.2
+#    - 0.2
 
 #dataset_sampling: dirichlet_split
 #dataset_sampling_kwargs:
