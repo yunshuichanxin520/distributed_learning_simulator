@@ -15,7 +15,6 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.shapley_values: list = []
-        self.metrics: dict[int, dict] = {}  # 新增属性来保存metrics字典
         self.config: None | DistributedTrainingConfig = None
         self.all_subsets = [
             tuple(sorted(s)) for s in self.powerset(self.complete_player_indices)
@@ -59,29 +58,25 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
     # 计算comfedsv需要的效用矩阵的产生过程
     # 注意：这里每轮的参与者集合是动态变化的，这篇论文用的是每轮随机选取一定比例的客户端，后边我的论文bifedsv中是根据客户端的效用选择的
     def _compute_impl(self, round_index: int) -> None:
-        self.metrics[round_index - 1] = {}
         subsets = set()
 
         # 计算被选中参与者所有子集的效用，这里我们使用metric来代替utility
         for subset in self.powerset(self.complete_player_indices):
-            subset = tuple(sorted(subset))
             if not subset:
-                metric = 0
-                self.metrics[round_index - 1][self.get_players(subset)] = metric
-                log_info("round %s subset %s metric %s", round_index, subset, metric)
-            else:
-                subsets.add(subset)
+                continue
+            subset = tuple(sorted(subset))
+            subsets.add(subset)
         assert self.batch_metric_fun is not None
         result_metrics: dict = {s: self.metric_fun(s) for s in subsets}
         # 将每个轮次中实际参与者的所有子集的效用对应到效用矩阵utilities_matrix中去
+        self.utilities_matrix[round_index - 1][self.all_subsets.index(())] = 0
+
         for subset, metric in result_metrics.items():
             subset = self.get_players(subset)
             self.utilities_matrix[round_index - 1][
                 self.all_subsets.index(subset)
             ] = metric
             log_info("round %s subset %s metric %s", round_index, subset, metric)
-
-        self.metrics[round_index - 1].update(result_metrics)
 
     def exit(self) -> None:
         assert self.config is not None
