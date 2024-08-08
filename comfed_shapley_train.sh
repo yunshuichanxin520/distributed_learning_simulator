@@ -1,1 +1,1 @@
-python3 ./simulator.py --config-name comfed_sv/cifar10.yaml
+python3 ./simulator.py --config-name comfed_sv/imdb.yaml
