@@ -35,12 +35,12 @@ model_kwargs:
 dataset_sampling: iid_split_and_flip
 dataset_sampling_kwargs:
   flip_percent:
-    - 0.0
-    - 0.0
-    - 0.05
-    - 0.05
+    - 0.01
+    - 0.01
     - 0.1
     - 0.1
+    - 0.2
+    - 0.2
 
 #dataset_sampling: dirichlet_split
 #dataset_sampling_kwargs:
