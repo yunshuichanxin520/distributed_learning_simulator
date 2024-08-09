@@ -12,7 +12,7 @@ learning_rate: 0.01
 algorithm_kwargs:
   random_client_number: 3
 
-#dataset_sampling: iid
+dataset_sampling: iid
 
 #dataset_sampling: iid_split_and_sample
 #dataset_sampling_kwargs:
@@ -34,7 +34,7 @@ algorithm_kwargs:
 #    - 0.2
 #    - 0.2
 
-dataset_sampling: dirichlet_split
-dataset_sampling_kwargs:
-  concentration: 0.5
+#dataset_sampling: dirichlet_split
+#dataset_sampling_kwargs:
+#  concentration: 0.5
 ...

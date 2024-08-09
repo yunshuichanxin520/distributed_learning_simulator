@@ -22,15 +22,15 @@ model_kwargs:
 
 #dataset_sampling: iid
 
-dataset_sampling: iid_split_and_sample
-dataset_sampling_kwargs:
-   sample_probs:
-      - {0: 0.8, 1: 0.8}
-      - {0: 0.8, 1: 0.8}
-      - {0: 0.9, 1: 0.9}
-      - {0: 0.9, 1: 0.9}
-      - {0: 1.0, 1: 1.0}
-      - {0: 1.0, 1: 1.0}
+#dataset_sampling: iid_split_and_sample
+#dataset_sampling_kwargs:
+#   sample_probs:
+#      - {0: 0.8, 1: 0.8}
+#      - {0: 0.8, 1: 0.8}
+#      - {0: 0.9, 1: 0.9}
+#      - {0: 0.9, 1: 0.9}
+#      - {0: 1.0, 1: 1.0}
+#      - {0: 1.0, 1: 1.0}
 
 #dataset_sampling: iid_split_and_flip
 #dataset_sampling_kwargs:
@@ -43,6 +43,6 @@ dataset_sampling_kwargs:
 #    - 0.1
 
 
-#dataset_sampling: dirichlet_split
-#dataset_sampling_kwargs:
-#  concentration: 0.5
+dataset_sampling: dirichlet_split
+dataset_sampling_kwargs:
+  concentration: 0.5

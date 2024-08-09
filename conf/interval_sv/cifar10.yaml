@@ -11,9 +11,9 @@ epoch: 5
 learning_rate: 0.1
 algorithm_kwargs:
   lambda: 1
-  round_trunc_threshold: 0.005
+  round_trunc_threshold: 0.001
 
-dataset_sampling: iid
+#dataset_sampling: iid
 
 #dataset_sampling: iid_split_and_sample
 #dataset_sampling_kwargs:
@@ -35,7 +35,7 @@ dataset_sampling: iid
 #    - 0.2
 #    - 0.2
 
-#dataset_sampling: dirichlet_split
-#dataset_sampling_kwargs:
-#  concentration: 0.5
+dataset_sampling: dirichlet_split
+dataset_sampling_kwargs:
+  concentration: 0.5
 ...
