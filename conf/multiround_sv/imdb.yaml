@@ -8,6 +8,7 @@ batch_size: 64
 round: 100
 learning_rate_scheduler_name: CosineAnnealingLR
 epoch: 5
+
 learning_rate: 0.01
 dataset_kwargs:
   input_max_len: 300
@@ -19,6 +20,8 @@ model_kwargs:
   num_encoder_layer: 2
   d_model: 100
   nhead: 5
+  frozen_modules:
+    names: [ embedding ]
 
 #dataset_sampling: iid
 
@@ -32,16 +35,16 @@ model_kwargs:
 #      - {0: 0.9, 1: 0.9}
 #      - {0: 0.9, 1: 0.9}
 
-dataset_sampling: iid_split_and_flip
-dataset_sampling_kwargs:
-  flip_percent:
-    - 0.01
-    - 0.01
-    - 0.1
-    - 0.1
-    - 0.2
-    - 0.2
-
-#dataset_sampling: dirichlet_split
+#dataset_sampling: iid_split_and_flip
 #dataset_sampling_kwargs:
-#  concentration: 0.5
+#  flip_percent:
+#    - 0.01
+#    - 0.01
+#    - 0.1
+#    - 0.1
+#    - 0.2
+#    - 0.2
+
+dataset_sampling: dirichlet_split
+dataset_sampling_kwargs:
+  concentration: 0.7
