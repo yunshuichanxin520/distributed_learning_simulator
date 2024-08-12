@@ -21,7 +21,8 @@ model_kwargs:
   nhead: 5
   frozen_modules:
     names: [embedding]
-dataset_sampling: iid
+
+#dataset_sampling: iid
 
 #dataset_sampling: iid_split_and_sample
 #dataset_sampling_kwargs:
@@ -43,6 +44,6 @@ dataset_sampling: iid
 #    - 0.2
 #    - 0.2
 
-#dataset_sampling: dirichlet_split
-#dataset_sampling_kwargs:
-#  concentration: 0.5
+dataset_sampling: dirichlet_split
+dataset_sampling_kwargs:
+  concentration: 5.0

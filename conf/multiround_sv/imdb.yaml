@@ -47,4 +47,4 @@ model_kwargs:
 
 dataset_sampling: dirichlet_split
 dataset_sampling_kwargs:
-  concentration: 0.7
+  concentration: 5.0
