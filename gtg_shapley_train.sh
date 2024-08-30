@@ -1,1 +1,1 @@
-python3 ./simulator.py --config-name gtg_sv/imdb.yaml
+python3 ./simulator.py --config-name gtg_sv/mnist.yaml

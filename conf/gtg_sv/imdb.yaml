@@ -34,16 +34,16 @@ model_kwargs:
 #      - {0: 0.9, 1: 0.9}
 #      - {0: 0.9, 1: 0.9}
 
-#dataset_sampling: iid_split_and_flip
-#dataset_sampling_kwargs:
-#  flip_percent:
-#    - 0.01
-#    - 0.01
-#    - 0.1
-#    - 0.1
-#    - 0.2
-#    - 0.2
-
-dataset_sampling: dirichlet_split
+dataset_sampling: iid_split_and_flip
 dataset_sampling_kwargs:
-  concentration: 5.0
+  flip_percent:
+    - 0.01
+    - 0.01
+    - 0.1
+    - 0.1
+    - 0.2
+    - 0.2
+
+#dataset_sampling: dirichlet_split
+#dataset_sampling_kwargs:
+#  concentration: 5.0
