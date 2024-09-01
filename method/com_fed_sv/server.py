@@ -14,3 +14,4 @@ class ComFedShapleyValueServer(ShapleyValueServer):
             self.selection_result[-1] = result
             return result
         return super().select_workers()
+
