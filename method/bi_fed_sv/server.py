@@ -22,7 +22,7 @@ class BiFedSVServer(ShapleyValueServer):
         # Initialize participant set N^(r+1) as an empty set
         round_N = set()
         if (self.round_number == 1):
-            for key,value in bifed_sv:
+            for key, value in bifed_sv:
                 round_N.add(key)
         else:
             # Iterate over each participant i in N (all participants in the bifed_sv dictionary)

@@ -15,6 +15,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         # self.shapley_values: list = []
+        self.selection_result = None
         self.shapley_values: dict[int, list] = {}
         self.config: None | DistributedTrainingConfig = None
 
@@ -123,8 +124,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         # For simplicity, let's assume the optimal value is the maximum
         return optimal_bifedsv
 
-    # 计算comfedsv需要的效用矩阵的产生过程
-    # 注意：这里每轮的参与者集合是动态变化的，这篇论文用的是每轮随机选取一定比例的客户端，后边我的论文bifedsv中是根据客户端的效用选择的
+    # 注意：这里每轮的参与者集合是动态变化的
     def _compute_impl(self, round_index: int) -> None:
         subsets = set()
 
@@ -159,12 +159,8 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             v_ST[(S, T)] = matrix
             feature_matrix.append(matrix)
 
-        bifedsv = self.calculate_bifedsv(self.selection_result[round_index], theta_matrix, feature_matrix, self.find_optimal_bifedsv)
+        bifedsv = self.calculate_bifedsv(self.selection_result[round_index], theta_matrix, feature_matrix)
         log_info("bifedsv: %s", bifedsv)
-
-
-    # def get_result(self) -> list:
-    #     return self.shapley_values
 
     def get_result(self) -> dict:
         return {
