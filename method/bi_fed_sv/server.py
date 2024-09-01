@@ -36,4 +36,4 @@ class BiFedSVServer(ShapleyValueServer):
 
         # Return the selected participants set N^(r+1)
         # return round_N
-        #return super().server_client_bidirectional_selection()
+        return super().server_client_bidirectional_selection()
