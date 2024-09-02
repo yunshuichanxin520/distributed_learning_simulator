@@ -27,7 +27,7 @@ class BiFedSVServer(ShapleyValueServer):
         else:
             # Iterate over each participant i in N (all participants in the bifed_sv dictionary)
 
-            for key,value in bifed_sv:
+            for key, value in bifed_sv:
                 # Check if φ^(r)_i >= 0 and φ^(r)_i >= φ^(r)'_i
                 if bifed_sv[key] >= 0 and bifed_sv[key] >= sum(bifed_sv)/len(bifed_sv):#expected_sv[i]:
                     # Add participant i to N^(r+1)

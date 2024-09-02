@@ -19,21 +19,21 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         self.shapley_values: dict[int, list] = {}
         self.config: None | DistributedTrainingConfig = None
 
-    # 生成集合 N 的所有子集
+    # 生成集合 round_N 的所有子集
     def generate_subsets(self, round_N):
         subsets = []
-        for r in range(len(round_N) + 1):
-            subsets.extend(itertools.combinations(round_N, r))
+        for i in range(len(round_N) + 1):
+            subsets.extend(itertools.combinations(round_N, i))
         return subsets
 
-    # 生成集合 N 的所有不相交子集对
+    # 生成集合 round_N 的所有不相交子集对
     def generate_subset_pairs(self, round_N):
         subsets_S = self.generate_subsets(round_N)
         subsets_T = self.generate_subsets(round_N)
         subset_pairs = [(S, T) for S in subsets_S for T in subsets_T if set(S).isdisjoint(T)]
         return subset_pairs
 
-    # 生成 N \ (S ∪ T) 的所有子集
+    # 生成 round_N \ (S ∪ T) 的所有子集
     def generate_remaining_subsets(self, round_N, S, T):
         remaining = round_N - set(S) - set(T)
         return self.generate_subsets(remaining)
@@ -46,7 +46,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             cumulative_utility += v_S[tuple(sorted(union_set))]
         return cumulative_utility
 
-    # 计算排序键
+    # 计算排序键，因为不相交子集对在特征矩阵feature_matrix中出现的顺序有要求
     def sort_key(self, pair, round_N):
         S, T = pair
         deltas = []
@@ -65,6 +65,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         non_zero_index = np.argmax(Z != 0)
         return non_zero_index
 
+    #从文件夹tmp中自动的读取theta_matrix，theta_n，n为每次参与联邦学习的参与者个数
     def read_matrix_from_csv(self, round_N):
         """从CSV文件中读取矩阵"""
         ROOT_DIR = "/home/cuitianxu/dls20240722/distributed_learning_simulator/tmp"
@@ -73,56 +74,46 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         data = pd.read_csv(data_file, header=None, delim_whitespace=True)  # 根据你的CSV文件分隔符调整
         return data.to_numpy()
 
-    def calculate_bifedsv(self, participants_set, theta_matrix, feature_matrix):
-        """
-        Calculate BiFedSV based on Matrix Semi Tensor Product Method.
-        Parameters:
-        participants_set (list): List of participants in the current round N^(r).
-        theta_matrix (np.ndarray): Shapley matrix Θ|N^(r)|.
-        feature_matrix (np.ndarray): Feature matrix M_v.
-        historical_bifedsv (list): Historical BiFedSV values [Φ^(0), ..., Φ^(r-1)].
-
-        Returns:
-        dict: The BiFedSV Φ^(r) for each participant i in N^(r).
-        """
+    # 计算bifed_sv, participants_set == round_N
+    def calculate_bifed_sv(self, participants_set, theta_matrix, feature_matrix):
         # Step 1: Calculate the BiFedSV for participants (p)
-        bifedsv_p = np.dot(feature_matrix, theta_matrix)
+        bifed_sv_p = np.dot(feature_matrix, theta_matrix)
 
         # Create a dictionary to store the results
-        bifedsv = {}
+        bifed_sv = {}
 
         # Store BiFedSV for participants
         for i, participant in enumerate(participants_set):
-            bifedsv[participant] = bifedsv_p[i]
+            bifed_sv[participant] = bifed_sv_p[i]
 
         # Step 2: Find the historical optimal BiFedSV for non-participants (n - p)
         non_participants = set(range(len(self.config.worker_number))) - set(participants_set)
-        bifedsv_non_p = {}
+        bifed_sv_non_p = {}
 
         for i in non_participants:
             # Find the optimal historical BiFedSV value for the non-participants
-            bifedsv_non_p[i] = self.find_optimal_bifedsv[i]
+            bifed_sv_non_p[i] = self.find_optimal_bifed_sv[i]
 
         # Step 3: Update BiFedSV for all participants and non-participants
         for i in non_participants:
-            bifedsv[i] = bifedsv_non_p[i]
+            bifed_sv[i] = bifed_sv_non_p[i]
 
         # Step 4: Combine and return the final BiFedSV Φ^(r) for all participants
-        return bifedsv
+        return bifed_sv
 
-    def find_optimal_bifedsv(self):
+    def find_optimal_bifed_sv(self):
         #{round:[S_V,S_V]}
         #{subset:[S_V,S_V,...]}
         subsets: dict = {int: list}
         for round, S_Vs in self.shapley_values.items():
             for i, S_V in enumerate(S_Vs):
-                subsets[i].append(S_V);
-        optimal_bifedsv = []
-        for S_Vs in subsets.values():
-            optimal_bifedsv.append(max(S_Vs))
+                subsets[i].append(S_V)
+        optimal_bifed_sv = []
 
         # For simplicity, let's assume the optimal value is the maximum
-        return optimal_bifedsv
+        for S_Vs in subsets.values():
+            optimal_bifed_sv.append(max(S_Vs))
+        return optimal_bifed_sv
 
     # 注意：这里每轮的参与者集合是动态变化的
     def _compute_impl(self, round_index: int) -> None:
@@ -136,8 +127,6 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             subsets.add(subset)
         assert self.batch_metric_fun is not None
         result_metrics: dict = {s: self.metric_fun(s) for s in subsets}
-        # 将每个轮次中实际参与者的所有子集的效用对应到效用矩阵utilities_matrix中去
-        #self.utilities_matrix[round_index - 1][self.all_subsets.index(())] = 0
 
         for subset, metric in result_metrics.items():
             # subset = self.get_players(subset)
@@ -159,8 +148,8 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             v_ST[(S, T)] = matrix
             feature_matrix.append(matrix)
 
-        bifedsv = self.calculate_bifedsv(self.selection_result[round_index], theta_matrix, feature_matrix)
-        log_info("bifedsv: %s", bifedsv)
+        bifed_sv = self.calculate_bifed_sv(self.selection_result[round_index], theta_matrix, feature_matrix)
+        log_info("bifed_sv: %s", bifed_sv)
 
     def get_result(self) -> dict:
         return {
