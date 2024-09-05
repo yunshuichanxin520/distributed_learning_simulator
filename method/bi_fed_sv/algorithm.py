@@ -16,7 +16,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         # self.shapley_values: list = []
-        self.selection_result: set = set()
+        self.selection_result: dict = {}
         self.shapley_values: dict[int, list] = {}
         self.config: None | DistributedTrainingConfig = None
 
