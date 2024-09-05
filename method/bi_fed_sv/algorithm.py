@@ -1,5 +1,6 @@
-import operator as op
-from functools import cached_property, reduce
+import os
+import itertools
+from collections import defaultdict
 import pandas as pd
 import numpy as np
 from cyy_naive_lib.log import log_info
@@ -8,8 +9,6 @@ from cyy_torch_algorithm.shapely_value.shapley_value import \
 from distributed_learning_simulation import DistributedTrainingConfig
 from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
     ShapleyValueAlgorithm
-import itertools
-import os
 
 class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
@@ -19,23 +18,23 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         self.shapley_values: dict[int, list] = {}
         self.config: None | DistributedTrainingConfig = None
 
-    # 生成集合 round_N 的所有子集
-    def generate_subsets(self, round_N):
+    # 生成集合 round_participants 的所有子集
+    def generate_subsets(self, round_participants):
         subsets = []
-        for i in range(len(round_N) + 1):
-            subsets.extend(itertools.combinations(round_N, i))
+        for i in range(len(round_participants) + 1):
+            subsets.extend(itertools.combinations(round_participants, i))
         return subsets
 
-    # 生成集合 round_N 的所有不相交子集对
-    def generate_subset_pairs(self, round_N):
-        subsets_S = self.generate_subsets(round_N)
-        subsets_T = self.generate_subsets(round_N)
+    # 生成集合 round_participants 的所有不相交子集对
+    def generate_subset_pairs(self, round_participants):
+        subsets_S = self.generate_subsets(round_participants)
+        subsets_T = self.generate_subsets(round_participants)
         subset_pairs = [(S, T) for S in subsets_S for T in subsets_T if set(S).isdisjoint(T)]
         return subset_pairs
 
-    # 生成 round_N \ (S ∪ T) 的所有子集
-    def generate_remaining_subsets(self, round_N, S, T):
-        remaining = round_N - set(S) - set(T)
+    # 生成 round_participants \ (S ∪ T) 的所有子集
+    def generate_remaining_subsets(self, round_participants, S, T):
+        remaining = round_participants - set(S) - set(T)
         return self.generate_subsets(remaining)
 
     # 计算 v(S ∪ A) 的累计效用
@@ -47,10 +46,10 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         return cumulative_utility
 
     # 计算排序键，因为不相交子集对在特征矩阵feature_matrix中出现的顺序有要求
-    def sort_key(self, pair, round_N):
+    def sort_key(self, pair, round_participants):
         S, T = pair
         deltas = []
-        for i in round_N:
+        for i in round_participants:
             if i in S:
                 deltas.append([1, 0, 0])
             elif i in T:
@@ -65,12 +64,12 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         non_zero_index = np.argmax(Z != 0)
         return non_zero_index
 
-    #从文件夹tmp中自动的读取theta_matrix，theta_n，n为每次参与联邦学习的参与者个数
-    def read_matrix_from_csv(self, round_N):
+    # 从文件夹tmp中自动的读取theta_matrix，theta_n，n为每次参与联邦学习的参与者个数
+    def read_matrix_from_csv(self, round_participants):
         """从CSV文件中读取矩阵"""
         ROOT_DIR = "/home/cuitianxu/dls20240722/distributed_learning_simulator/tmp"
         data_dir = os.path.join(ROOT_DIR, 'theta_n')
-        data_file = os.path.join(data_dir, 'theta_{}.csv'.format(len(round_N)))
+        data_file = os.path.join(data_dir, 'theta_{}.csv'.format(len(round_participants)))
         data = pd.read_csv(data_file, header=None, delim_whitespace=True)  # 根据你的CSV文件分隔符调整
         return data.to_numpy()
 
@@ -78,41 +77,48 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def calculate_bifed_sv(self, participants_set, theta_matrix, feature_matrix):
         # Step 1: Calculate the BiFedSV for participants (p)
         bifed_sv_p = np.dot(feature_matrix, theta_matrix)
-
         # Create a dictionary to store the results
         bifed_sv = {}
-
         # Store BiFedSV for participants
         for i, participant in enumerate(participants_set):
             bifed_sv[participant] = bifed_sv_p[i]
-
         # Step 2: Find the historical optimal BiFedSV for non-participants (n - p)
         non_participants = set(range(len(self.config.worker_number))) - set(participants_set)
         bifed_sv_non_p = {}
-
         for i in non_participants:
             # Find the optimal historical BiFedSV value for the non-participants
-            bifed_sv_non_p[i] = self.find_optimal_bifed_sv[i]
-
+            bifed_sv_non_p[i] = self.find_optimal_bifed_sv()
         # Step 3: Update BiFedSV for all participants and non-participants
         for i in non_participants:
             bifed_sv[i] = bifed_sv_non_p[i]
-
         # Step 4: Combine and return the final BiFedSV Φ^(r) for all participants
         return bifed_sv
 
+    # def find_optimal_bifed_sv(self):
+    #     # {round:[S_V,S_V]},{subset:[S_V,S_V,...]}
+    #     subsets: dict = {int: list}
+    #     for r, S_Vs in self.shapley_values.items():
+    #         for i, S_V in enumerate(S_Vs):
+    #             subsets[i].append(S_V)
+    #     optimal_bifed_sv = []
+    #     # For simplicity, let's assume the optimal value is the maximum
+    #     for S_Vs in subsets.values():
+    #         optimal_bifed_sv.append(max(S_Vs))
+    #     return optimal_bifed_sv
+
     def find_optimal_bifed_sv(self):
-        #{round:[S_V,S_V]}
-        #{subset:[S_V,S_V,...]}
-        subsets: dict = {int: list}
-        for round, S_Vs in self.shapley_values.items():
+        subsets = defaultdict(list)
+        for r, S_Vs in self.shapley_values.items():
+            # 假设S_Vs的长度与worker_number相同，且按顺序排列
             for i, S_V in enumerate(S_Vs):
                 subsets[i].append(S_V)
-        optimal_bifed_sv = []
 
-        # For simplicity, let's assume the optimal value is the maximum
-        for S_Vs in subsets.values():
-            optimal_bifed_sv.append(max(S_Vs))
+                # 创建一个字典来存储最优BiFedSV
+        optimal_bifed_sv = {}
+        for i, S_Vs in subsets.items():
+            if S_Vs:  # 确保列表不为空
+                optimal_bifed_sv[i] = max(S_Vs)  # 取最大值作为最优值
+
         return optimal_bifed_sv
 
     # 注意：这里每轮的参与者集合是动态变化的
@@ -155,6 +161,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         return {
             "round_shapley_values": self.shapley_values,
         }
+
 class BiFedShapleyValueAlgorithm(ShapleyValueAlgorithm):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(BiFedShapleyValue, *args, **kwargs)
