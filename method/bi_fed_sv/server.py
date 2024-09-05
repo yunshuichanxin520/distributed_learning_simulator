@@ -8,7 +8,6 @@ class BiFedSVServer(ShapleyValueServer):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs, algorithm=BiFedShapleyValueAlgorithm(server=self))
         self.round_participants = {}
-        self.round_number = 1
 
     # def server_client_bidirectional_selection(self, bifed_sv):
     #     # Initialize participant set N^(r+1) as an empty set
@@ -25,12 +24,13 @@ class BiFedSVServer(ShapleyValueServer):
     #             if bifed_sv[key] >= 0 and bifed_sv[key] >= sum(bifed_sv)/len(bifed_sv):
     #                 # Add participant i to N^(r+1)
     #                 round_participants.add(key)
-    def server_client_bidirectional_selection(self, bifed_sv):
+    def select_workers(self) -> set[int]:
         # 初始化当前轮次的参与者集合
+        bifed_sv = self.algorithm.bifed_sv
         round_participants = set()
 
         # 如果是第一轮，直接将所有参与者添加到当前轮次的集合中
-        if self.round_number == 1:
+        if self.round_index == 1:
             round_participants.update(bifed_sv.keys())
         else:
             # 否则，根据条件筛选参与者
@@ -40,14 +40,7 @@ class BiFedSVServer(ShapleyValueServer):
                     round_participants.add(key)
 
                     # 将当前轮次的参与者集合存入selection_result中
-        self.selection_result[self.round_number] = round_participants
-
-        # 假设有某种方式需要更新轮次号，这里只是简单递增
-        self.round_number += 1
+        self.selection_result[self.round_index] = round_participants
 
         # 直接返回当前轮次的选择结果（如果需要）
         return round_participants
-        # Return the selected participants set N^(r+1)
-
-        # return round_N
-        return super().server_client_bidirectional_selection()
