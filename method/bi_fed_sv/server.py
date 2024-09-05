@@ -1,12 +1,12 @@
 from distributed_learning_simulator.method.shapley_value.shapley_value_server import \
     ShapleyValueServer
 
-from .algorithm import BiFedSVAlgorithm
+from .algorithm import BiFedShapleyValueAlgorithm
 
 
 class BiFedSVServer(ShapleyValueServer):
     def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs, algorithm=BiFedSVAlgorithm(server=self))
+        super().__init__(**kwargs, algorithm=BiFedShapleyValueAlgorithm(server=self))
 
     def server_client_bidirectional_selection(self, bifed_sv):
         """

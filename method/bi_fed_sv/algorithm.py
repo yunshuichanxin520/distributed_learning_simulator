@@ -16,7 +16,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         # self.shapley_values: list = []
-        self.selection_result = None
+        self.selection_result: set = set()
         self.shapley_values: dict[int, list] = {}
         self.config: None | DistributedTrainingConfig = None
 
@@ -135,7 +135,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         subsets = set()
 
         # 计算被选中参与者所有子集的效用 round_N -> self.selection_result[round_index]
-        for subset in self.generate_subsets(self.selection_result[round_index]):
+        for subset in self.generate_subsets(self.selection_result):
             if not subset:
                 continue
             subset = tuple(sorted(subset))
@@ -149,11 +149,11 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             #     self.all_subsets.index(subset)
             # ] = metric
             log_info("round %s subset %s metric %s", round_index, subset, metric)
-        theta_matrix = self.read_matrix_from_csv(self.selection_result[round_index])
-        subset_pairs = self.generate_subset_pairs(self.selection_result[round_index])
+        theta_matrix = self.read_matrix_from_csv(self.selection_result)
+        subset_pairs = self.generate_subset_pairs(self.selection_result)
         sorted_pairs = sorted(
             subset_pairs,
-            key=lambda pair: self.sort_key(pair, self.selection_result[round_index]),
+            key=lambda pair: self.sort_key(pair, self.selection_result),
         )
 
         v_ST = {}
@@ -173,7 +173,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             feature_matrix.append(matrix)
 
         bifed_sv = self.calculate_bifed_sv(
-            self.selection_result[round_index], theta_matrix, feature_matrix
+            self.selection_result, theta_matrix, feature_matrix
         )
         log_info("bifed_sv: %s", bifed_sv)
 
