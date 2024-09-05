@@ -1,14 +1,16 @@
-import os
 import itertools
+import os
 from collections import defaultdict
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 from cyy_naive_lib.log import log_info
 from cyy_torch_algorithm.shapely_value.shapley_value import \
     RoundBasedShapleyValue
 from distributed_learning_simulation import DistributedTrainingConfig
 from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
     ShapleyValueAlgorithm
+
 
 class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
@@ -29,7 +31,9 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def generate_subset_pairs(self, round_participants):
         subsets_S = self.generate_subsets(round_participants)
         subsets_T = self.generate_subsets(round_participants)
-        subset_pairs = [(S, T) for S in subsets_S for T in subsets_T if set(S).isdisjoint(T)]
+        subset_pairs = [
+            (S, T) for S in subsets_S for T in subsets_T if set(S).isdisjoint(T)
+        ]
         return subset_pairs
 
     # 生成 round_participants \ (S ∪ T) 的所有子集
@@ -68,13 +72,18 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def read_matrix_from_csv(self, round_participants):
         """从CSV文件中读取矩阵"""
         ROOT_DIR = "/home/cuitianxu/dls20240722/distributed_learning_simulator/tmp"
-        data_dir = os.path.join(ROOT_DIR, 'theta_n')
-        data_file = os.path.join(data_dir, 'theta_{}.csv'.format(len(round_participants)))
-        data = pd.read_csv(data_file, header=None, delim_whitespace=True)  # 根据你的CSV文件分隔符调整
+        data_dir = os.path.join(ROOT_DIR, "theta_n")
+        data_file = os.path.join(
+            data_dir, "theta_{}.csv".format(len(round_participants))
+        )
+        data = pd.read_csv(
+            data_file, header=None, delim_whitespace=True
+        )  # 根据你的CSV文件分隔符调整
         return data.to_numpy()
 
     # 计算bifed_sv, participants_set == round_N
     def calculate_bifed_sv(self, participants_set, theta_matrix, feature_matrix):
+        assert self.config is not None
         # Step 1: Calculate the BiFedSV for participants (p)
         bifed_sv_p = np.dot(feature_matrix, theta_matrix)
         # Create a dictionary to store the results
@@ -83,7 +92,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         for i, participant in enumerate(participants_set):
             bifed_sv[participant] = bifed_sv_p[i]
         # Step 2: Find the historical optimal BiFedSV for non-participants (n - p)
-        non_participants = set(range(len(self.config.worker_number))) - set(participants_set)
+        non_participants = set(range(self.config.worker_number)) - set(participants_set)
         bifed_sv_non_p = {}
         for i in non_participants:
             # Find the optimal historical BiFedSV value for the non-participants
@@ -108,7 +117,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
     def find_optimal_bifed_sv(self):
         subsets = defaultdict(list)
-        for r, S_Vs in self.shapley_values.items():
+        for S_Vs in self.shapley_values.values():
             # 假设S_Vs的长度与worker_number相同，且按顺序排列
             for i, S_V in enumerate(S_Vs):
                 subsets[i].append(S_V)
@@ -142,25 +151,37 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             log_info("round %s subset %s metric %s", round_index, subset, metric)
         theta_matrix = self.read_matrix_from_csv(self.selection_result[round_index])
         subset_pairs = self.generate_subset_pairs(self.selection_result[round_index])
-        sorted_pairs = sorted(subset_pairs, key=lambda pair: self.sort_key(pair, self.selection_result[round_index]))
+        sorted_pairs = sorted(
+            subset_pairs,
+            key=lambda pair: self.sort_key(pair, self.selection_result[round_index]),
+        )
 
         v_ST = {}
         feature_matrix = []
 
         for S, T in sorted_pairs:
-            remaining_subsets = self.generate_remaining_subsets(self.selection_result[round_index], S, T)
-            cumulative_utility = self.calculate_cumulative_utility(S, remaining_subsets, result_metrics)
-            matrix = cumulative_utility / (2 ** len(self.selection_result[round_index] - set(S) - set(T)))
+            remaining_subsets = self.generate_remaining_subsets(
+                self.selection_result[round_index], S, T
+            )
+            cumulative_utility = self.calculate_cumulative_utility(
+                S, remaining_subsets, result_metrics
+            )
+            matrix = cumulative_utility / (
+                2 ** len(self.selection_result[round_index] - set(S) - set(T))
+            )
             v_ST[(S, T)] = matrix
             feature_matrix.append(matrix)
 
-        bifed_sv = self.calculate_bifed_sv(self.selection_result[round_index], theta_matrix, feature_matrix)
+        bifed_sv = self.calculate_bifed_sv(
+            self.selection_result[round_index], theta_matrix, feature_matrix
+        )
         log_info("bifed_sv: %s", bifed_sv)
 
     def get_result(self) -> dict:
         return {
             "round_shapley_values": self.shapley_values,
         }
+
 
 class BiFedShapleyValueAlgorithm(ShapleyValueAlgorithm):
     def __init__(self, *args, **kwargs) -> None:
