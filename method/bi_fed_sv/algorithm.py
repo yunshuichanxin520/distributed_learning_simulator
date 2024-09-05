@@ -103,18 +103,6 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         # Step 4: Combine and return the final BiFedSV Φ^(r) for all participants
         return bifed_sv
 
-    # def find_optimal_bifed_sv(self):
-    #     # {round:[S_V,S_V]},{subset:[S_V,S_V,...]}
-    #     subsets: dict = {int: list}
-    #     for r, S_Vs in self.shapley_values.items():
-    #         for i, S_V in enumerate(S_Vs):
-    #             subsets[i].append(S_V)
-    #     optimal_bifed_sv = []
-    #     # For simplicity, let's assume the optimal value is the maximum
-    #     for S_Vs in subsets.values():
-    #         optimal_bifed_sv.append(max(S_Vs))
-    #     return optimal_bifed_sv
-
     def find_optimal_bifed_sv(self):
         subsets = defaultdict(list)
         for S_Vs in self.shapley_values.values():
