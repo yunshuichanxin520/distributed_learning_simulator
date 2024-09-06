@@ -176,13 +176,6 @@ class BiFedShapleyValueAlgorithm(ShapleyValueAlgorithm):
     @property
     def sv_algorithm(self) -> BiFedShapleyValue:
         algorithm = super().sv_algorithm
-        # 添加日志，检查 _all_worker_data 是否存在
-        print(f"Checking _all_worker_data: {self._all_worker_data}")
-
-        # 如果 _all_worker_data 尚未初始化，抛出友好的错误提示
-        # if not self._all_worker_data:
-        #     raise ValueError("Error: _all_worker_data is not initialized. Ensure all worker data is loaded properly.")
-
         assert isinstance(algorithm, BiFedShapleyValue)
         algorithm.config = self.config
         return algorithm
