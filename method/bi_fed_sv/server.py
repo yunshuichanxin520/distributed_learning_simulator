@@ -11,7 +11,8 @@ class BiFedSVServer(ShapleyValueServer):
 
     def select_workers(self) -> set[int]:
         # 初始化当前轮次的参与者集合
-        bifed_sv = self.algorithm.sv_algorithm.bifed_sv
+        assert isinstance(self.algorithm, BiFedShapleyValueAlgorithm)
+        bifed_sv = self.algorithm.sv_algorithm
         round_participants = set()
 
         # 如果是第一轮，直接将所有参与者添加到当前轮次的集合中
