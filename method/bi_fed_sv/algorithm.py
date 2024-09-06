@@ -10,17 +10,15 @@ from cyy_torch_algorithm.shapely_value.shapley_value import \
 from distributed_learning_simulation import DistributedTrainingConfig
 from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
     ShapleyValueAlgorithm
-from .server import BiFedSVServer
+# from .server import BiFedSVServer
 
 class BiFedShapleyValue(RoundBasedShapleyValue) :
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        # self.shapley_values: list = []
         self.selection_result = {}  # 初始化 selection_result，稍后由 server 更新
         self.bifed_sv = {}  # 初始化 bifed_sv
         self.shapley_values: dict[int, list] = {}
         self.config: None | DistributedTrainingConfig = None
-        self.bfs = BiFedSVServer()
 
     # 生成集合 round_participants 的所有子集
     def generate_subsets(self, round_participants):
@@ -123,8 +121,6 @@ class BiFedShapleyValue(RoundBasedShapleyValue) :
     # 注意：这里每轮的参与者集合是动态变化的
     def _compute_impl(self, round_index: int) -> None:
         # 获取当前轮次的参与者
-        # self.bfs.select_workers()
-        self.selection_result = self.bfs.selection_result
         round_participants = self.selection_result.get(round_index, set())
         print(f"Algorithm round participants: {round_participants}")
         subsets = set()
