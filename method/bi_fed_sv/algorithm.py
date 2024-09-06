@@ -16,7 +16,8 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         # self.shapley_values: list = []
-        self.selection_result: dict = {}
+        self.selection_result = {}  # 初始化 selection_result，稍后由 server 更新
+        self.bifed_sv = {}  # 初始化 bifed_sv
         self.shapley_values: dict[int, list] = {}
         self.config: None | DistributedTrainingConfig = None
 
@@ -120,28 +121,27 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
     # 注意：这里每轮的参与者集合是动态变化的
     def _compute_impl(self, round_index: int) -> None:
+        # 获取当前轮次的参与者
+        round_participants = self.selection_result.get(round_index, set())
         subsets = set()
 
-        # 计算被选中参与者所有子集的效用 round_N -> self.selection_result[round_index]
-        for subset in self.generate_subsets(self.selection_result):
+        # 计算每个子集的效用
+        for subset in self.generate_subsets(round_participants):
             if not subset:
                 continue
             subset = tuple(sorted(subset))
             subsets.add(subset)
-        assert self.batch_metric_fun is not None
-        result_metrics: dict = {s: self.metric_fun(s) for s in subsets}
 
-        for subset, metric in result_metrics.items():
-            # subset = self.get_players(subset)
-            # self.utilities_matrix[round_index - 1][
-            #     self.all_subsets.index(subset)
-            # ] = metric
-            log_info("round %s subset %s metric %s", round_index, subset, metric)
-        theta_matrix = self.read_matrix_from_csv(self.selection_result)
-        subset_pairs = self.generate_subset_pairs(self.selection_result)
+        result_metrics = {s: self.metric_fun(s) for s in subsets}
+
+        # 从 CSV 文件中读取 theta_matrix
+        theta_matrix = self.read_matrix_from_csv(round_participants)
+
+        # 计算 BiFed Shapley 值
+        subset_pairs = self.generate_subset_pairs(round_participants)
         sorted_pairs = sorted(
             subset_pairs,
-            key=lambda pair: self.sort_key(pair, self.selection_result),
+            key=lambda pair: self.sort_key(pair, round_participants),
         )
 
         v_ST = {}
@@ -149,20 +149,18 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
         for S, T in sorted_pairs:
             remaining_subsets = self.generate_remaining_subsets(
-                self.selection_result[round_index], S, T
+                round_participants, S, T
             )
             cumulative_utility = self.calculate_cumulative_utility(
                 S, remaining_subsets, result_metrics
             )
-            matrix = cumulative_utility / (
-                2 ** len(self.selection_result[round_index] - set(S) - set(T))
-            )
+            matrix = cumulative_utility / (2 ** len(round_participants - set(S) - set(T)))
             v_ST[(S, T)] = matrix
             feature_matrix.append(matrix)
 
-        bifed_sv = self.calculate_bifed_sv(
-            self.selection_result, theta_matrix, feature_matrix
-        )
+        # 计算 BiFed Shapley 值
+        bifed_sv = self.calculate_bifed_sv(round_participants, theta_matrix, feature_matrix)
+        self.bifed_sv = bifed_sv  # 更新 bifed_sv
         log_info("bifed_sv: %s", bifed_sv)
 
     def get_result(self) -> dict:
@@ -178,6 +176,14 @@ class BiFedShapleyValueAlgorithm(ShapleyValueAlgorithm):
     @property
     def sv_algorithm(self) -> BiFedShapleyValue:
         algorithm = super().sv_algorithm
+        # 添加日志，检查 _all_worker_data 是否存在
+        print(f"Checking _all_worker_data: {self._all_worker_data}")
+
+        # 如果 _all_worker_data 尚未初始化，抛出友好的错误提示
+        # if not self._all_worker_data:
+        #     raise ValueError("Error: _all_worker_data is not initialized. Ensure all worker data is loaded properly.")
+
         assert isinstance(algorithm, BiFedShapleyValue)
         algorithm.config = self.config
         return algorithm
+
