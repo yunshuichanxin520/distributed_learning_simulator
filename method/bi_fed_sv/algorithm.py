@@ -123,14 +123,31 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         # Step 4: Combine and return the final BiFedSV Φ^(r) for all participants
         return bifed_sv
 
+    # def find_optimal_bifed_sv(self):
+    #     subsets = defaultdict(list)
+    #     for S_Vs in self.bifed_sv.values():
+    #         # 假设S_Vs的长度与worker_number相同，且按顺序排列
+    #         for i, S_V in enumerate(S_Vs):
+    #             subsets[i].append(S_V)
+    #
+    #             # 创建一个字典来存储最优BiFedSV
+    #     optimal_bifed_sv = {}
+    #     for i, S_Vs in subsets.items():
+    #         if S_Vs:  # 确保列表不为空
+    #             optimal_bifed_sv[i] = max(S_Vs)  # 取最大值作为最优值
+    #
+    #     return optimal_bifed_sv
     def find_optimal_bifed_sv(self):
         subsets = defaultdict(list)
-        for S_Vs in self.shapley_values.values():
-            # 假设S_Vs的长度与worker_number相同，且按顺序排列
+        for S_Vs in self.bifed_sv.values():
+            # 检查 S_Vs 是否是可迭代的对象，如果不是，则将其转换为单元素列表
+            if isinstance(S_Vs, (int, float, np.float64)):
+                S_Vs = [S_Vs]  # 转换为单元素列表
+
             for i, S_V in enumerate(S_Vs):
                 subsets[i].append(S_V)
 
-                # 创建一个字典来存储最优BiFedSV
+        # 创建一个字典来存储最优BiFedSV
         optimal_bifed_sv = {}
         for i, S_Vs in subsets.items():
             if S_Vs:  # 确保列表不为空
