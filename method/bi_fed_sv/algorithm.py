@@ -10,13 +10,14 @@ from cyy_torch_algorithm.shapely_value.shapley_value import \
 from distributed_learning_simulation import DistributedTrainingConfig
 from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
     ShapleyValueAlgorithm
+
 # from .server import BiFedSVServer
 
-class BiFedShapleyValue(RoundBasedShapleyValue) :
+
+class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.selection_result = {}  # 初始化 selection_result，稍后由 server 更新
-        self.bifed_sv = {}  # 初始化 bifed_sv
+        self.bifed_sv: dict = {}  # 初始化 bifed_sv
         self.shapley_values: dict[int, list] = {}
         self.config: None | DistributedTrainingConfig = None
 
@@ -121,7 +122,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue) :
     # 注意：这里每轮的参与者集合是动态变化的
     def _compute_impl(self, round_index: int) -> None:
         # 获取当前轮次的参与者
-        round_participants = self.selection_result.get(round_index, set())
+        round_participants = self.players
         print(f"Algorithm round participants: {round_participants}")
         subsets = set()
 
@@ -154,12 +155,16 @@ class BiFedShapleyValue(RoundBasedShapleyValue) :
             cumulative_utility = self.calculate_cumulative_utility(
                 S, remaining_subsets, result_metrics
             )
-            matrix = cumulative_utility / (2 ** len(round_participants - set(S) - set(T)))
+            matrix = cumulative_utility / (
+                2 ** len(round_participants - set(S) - set(T))
+            )
             v_ST[(S, T)] = matrix
             feature_matrix.append(matrix)
 
         # 计算 BiFed Shapley 值
-        bifed_sv = self.calculate_bifed_sv(round_participants, theta_matrix, feature_matrix)
+        bifed_sv = self.calculate_bifed_sv(
+            round_participants, theta_matrix, feature_matrix
+        )
         self.bifed_sv = bifed_sv  # 更新 bifed_sv
         log_info("bifed_sv: %s", bifed_sv)
 
@@ -179,4 +184,3 @@ class BiFedShapleyValueAlgorithm(ShapleyValueAlgorithm):
         assert isinstance(algorithm, BiFedShapleyValue)
         algorithm.config = self.config
         return algorithm
-

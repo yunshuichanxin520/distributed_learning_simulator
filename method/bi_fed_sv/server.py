@@ -1,6 +1,8 @@
 from distributed_learning_simulator.method.shapley_value.shapley_value_server import \
     ShapleyValueServer
+
 from .algorithm import BiFedShapleyValueAlgorithm
+
 
 class BiFedSVServer(ShapleyValueServer):
 
@@ -8,7 +10,6 @@ class BiFedSVServer(ShapleyValueServer):
     def __init__(self, **kwargs) -> None:
         # from .algorithm import BiFedShapleyValueAlgorithm  # 延迟导入，避免循环导入问题
         super().__init__(**kwargs, algorithm=BiFedShapleyValueAlgorithm(server=self))
-        self.selection_result = {}  # 用于保存每一轮的参与者选择结果
         # works # 用于保存每一轮的参与者选择结果
 
     def select_workers(self) -> set[int]:
@@ -31,7 +32,9 @@ class BiFedSVServer(ShapleyValueServer):
         # 根据 BiFed Shapley 值筛选参与者
         for key, value in bifed_sv_algorithm.bifed_sv.items():
             # 选择符合条件的参与者（满足某些 Shapley 值阈值）
-            if value >= 0 and value >= sum(bifed_sv_algorithm.bifed_sv.values()) / len(bifed_sv_algorithm.bifed_sv):
+            if value >= 0 and value >= sum(bifed_sv_algorithm.bifed_sv.values()) / len(
+                bifed_sv_algorithm.bifed_sv
+            ):
                 round_participants.add(key)
 
         # 保存选择结果
@@ -39,6 +42,3 @@ class BiFedSVServer(ShapleyValueServer):
         print(f"Selection result for round {self.round_index}: {round_participants}")
 
         return round_participants
-
-
-
