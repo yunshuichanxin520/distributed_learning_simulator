@@ -16,7 +16,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.bifed_sv: dict = {}  # 初始化 bifed_sv
-        # self.shapley_values: dict[int, list] = {}
+        # self.bifed_sv: dict[int, dict] = {}
         self.config: None | DistributedTrainingConfig = None
 
     # 生成集合 round_participants 的所有子集

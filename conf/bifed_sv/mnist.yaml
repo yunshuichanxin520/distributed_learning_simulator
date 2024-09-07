@@ -5,7 +5,8 @@ distributed_algorithm: bi_fed_shapley_value
 optimizer_name: SGD
 worker_number: 6
 batch_size: 64
-round: 20
+round: 10
+
 learning_rate_scheduler_name: CosineAnnealingLR
 epoch: 2
 learning_rate: 0.01
