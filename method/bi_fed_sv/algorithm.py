@@ -11,14 +11,12 @@ from distributed_learning_simulation import DistributedTrainingConfig
 from distributed_learning_simulator.algorithm.shapley_value_algorithm import \
     ShapleyValueAlgorithm
 
-# from .server import BiFedSVServer
-
 
 class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.bifed_sv: dict = {}  # 初始化 bifed_sv
-        self.shapley_values: dict[int, list] = {}
+        # self.shapley_values: dict[int, list] = {}
         self.config: None | DistributedTrainingConfig = None
 
     # 生成集合 round_participants 的所有子集
@@ -39,6 +37,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
     # 生成 round_participants \ (S ∪ T) 的所有子集
     def generate_remaining_subsets(self, round_participants, S, T):
+        round_participants = set(round_participants)
         remaining = round_participants - set(S) - set(T)
         return self.generate_subsets(remaining)
 
@@ -47,7 +46,21 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         cumulative_utility = 0
         for subset in remaining_subsets:
             union_set = set(S).union(subset)
-            cumulative_utility += v_S[tuple(sorted(union_set))]
+            sorted_union_set = tuple(sorted(union_set))
+
+            # 检查 union_set 是否为空
+            if not sorted_union_set:
+                continue  # 如果是空集，跳过
+
+            # 确保 v_S 中有这个子集的效用值
+            if sorted_union_set in v_S:
+                cumulative_utility += v_S[sorted_union_set]
+            else:
+                # 你可以选择记录一个警告，或者赋予默认值
+                print(f"Warning: No utility found for subset {sorted_union_set}")
+                # 或者提供一个默认的效用值（例如0）
+                cumulative_utility += 0
+
         return cumulative_utility
 
     # 计算排序键，因为不相交子集对在特征矩阵feature_matrix中出现的顺序有要求
@@ -77,9 +90,15 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         data_file = os.path.join(
             data_dir, "theta_{}.csv".format(len(round_participants))
         )
-        data = pd.read_csv(
-            data_file, header=None, delim_whitespace=True
-        )  # 根据你的CSV文件分隔符调整
+
+        # 使用逗号作为分隔符读取数据
+        data = pd.read_csv(data_file, sep=',', header=None, dtype=float)
+
+        # 检查是否存在非数值内容，并将其填充为 0 或其他适当值
+        if data.isnull().values.any():
+            log_info("Null values found in theta_matrix, filling with zeros")
+            data = data.fillna(0)  # 可以根据需求选择适当的填充值
+
         return data.to_numpy()
 
     # 计算bifed_sv, participants_set == round_N
@@ -122,7 +141,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     # 注意：这里每轮的参与者集合是动态变化的
     def _compute_impl(self, round_index: int) -> None:
         # 获取当前轮次的参与者
-        round_participants = self.players
+        round_participants = set(self.players)
         print(f"Algorithm round participants: {round_participants}")
         subsets = set()
 
@@ -137,6 +156,9 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
         # 从 CSV 文件中读取 theta_matrix
         theta_matrix = self.read_matrix_from_csv(round_participants)
+        # 检查 theta_matrix 的内容
+        if not np.issubdtype(theta_matrix.dtype, np.number):
+            raise ValueError(f"theta_matrix should contain numeric values, got {theta_matrix.dtype}")
 
         # 计算 BiFed Shapley 值
         subset_pairs = self.generate_subset_pairs(round_participants)
@@ -158,6 +180,9 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             matrix = cumulative_utility / (
                 2 ** len(round_participants - set(S) - set(T))
             )
+            if not isinstance(matrix, (int, float)):
+                raise ValueError(f"Matrix value should be numeric, got {type(matrix)} for {(S, T)}")
+
             v_ST[(S, T)] = matrix
             feature_matrix.append(matrix)
 
@@ -170,7 +195,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
     def get_result(self) -> dict:
         return {
-            "round_shapley_values": self.shapley_values,
+            "round_shapley_values": self.bifed_sv
         }
 
 
