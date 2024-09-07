@@ -85,7 +85,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     # 从文件夹tmp中自动的读取theta_matrix，theta_n，n为每次参与联邦学习的参与者个数
     def read_matrix_from_csv(self, round_participants):
         """从CSV文件中读取矩阵"""
-        data_dir= os.path.join(os.path.dirname(__file__), "tmp","theta_n")
+        data_dir = os.path.join(os.path.dirname(__file__), "tmp", "theta_n")
         print(data_dir)
         data_file = os.path.join(
             data_dir, "theta_{}.csv".format(len(round_participants))
@@ -152,7 +152,10 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             subset = tuple(sorted(subset))
             subsets.add(subset)
 
-        result_metrics = {s: self.metric_fun(s) for s in subsets}
+        result_metrics = {
+            s: self.metric_fun(tuple(self.players.index(worker_id) for worker_id in s))
+            for s in subsets
+        }
 
         # 从 CSV 文件中读取 theta_matrix
         theta_matrix = self.read_matrix_from_csv(round_participants)
