@@ -85,14 +85,14 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     # 从文件夹tmp中自动的读取theta_matrix，theta_n，n为每次参与联邦学习的参与者个数
     def read_matrix_from_csv(self, round_participants):
         """从CSV文件中读取矩阵"""
-        ROOT_DIR = "/home/cuitianxu/dls20240722/distributed_learning_simulator/tmp"
+        ROOT_DIR = os.path.join(os.path.dirname(__file__), "tmp")
         data_dir = os.path.join(ROOT_DIR, "theta_n")
         data_file = os.path.join(
             data_dir, "theta_{}.csv".format(len(round_participants))
         )
 
         # 使用逗号作为分隔符读取数据
-        data = pd.read_csv(data_file, sep=',', header=None, dtype=float)
+        data = pd.read_csv(data_file, sep=",", header=None, dtype=float)
 
         # 检查是否存在非数值内容，并将其填充为 0 或其他适当值
         if data.isnull().values.any():
@@ -158,7 +158,9 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         theta_matrix = self.read_matrix_from_csv(round_participants)
         # 检查 theta_matrix 的内容
         if not np.issubdtype(theta_matrix.dtype, np.number):
-            raise ValueError(f"theta_matrix should contain numeric values, got {theta_matrix.dtype}")
+            raise ValueError(
+                f"theta_matrix should contain numeric values, got {theta_matrix.dtype}"
+            )
 
         # 计算 BiFed Shapley 值
         subset_pairs = self.generate_subset_pairs(round_participants)
@@ -181,7 +183,9 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
                 2 ** len(round_participants - set(S) - set(T))
             )
             if not isinstance(matrix, (int, float)):
-                raise ValueError(f"Matrix value should be numeric, got {type(matrix)} for {(S, T)}")
+                raise ValueError(
+                    f"Matrix value should be numeric, got {type(matrix)} for {(S, T)}"
+                )
 
             v_ST[(S, T)] = matrix
             feature_matrix.append(matrix)
@@ -194,9 +198,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         log_info("bifed_sv: %s", bifed_sv)
 
     def get_result(self) -> dict:
-        return {
-            "round_shapley_values": self.bifed_sv
-        }
+        return {"round_shapley_values": self.bifed_sv}
 
 
 class BiFedShapleyValueAlgorithm(ShapleyValueAlgorithm):
