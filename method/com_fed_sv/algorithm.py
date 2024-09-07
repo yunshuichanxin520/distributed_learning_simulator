@@ -88,6 +88,7 @@ class ComFedShapleyValue(RoundBasedShapleyValue):
             utility_matrix_completed, self.all_subsets
         )
         log_info("comfedsv: %s", sv_completed)
+        self.shapley_values = list(sv_completed)
 
     def get_result(self) -> list:
         return self.shapley_values
