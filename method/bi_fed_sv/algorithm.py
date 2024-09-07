@@ -1,7 +1,5 @@
 import itertools
 import os
-from collections import defaultdict
-
 import numpy as np
 import pandas as pd
 from cyy_naive_lib.log import log_info
@@ -102,7 +100,9 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         return data.to_numpy()
 
 # 计算并保存每轮的 bifed_sv
-    def calculate_bifed_sv(self, participants_set, theta_matrix, feature_matrix, round_index):
+    def calculate_bifed_sv(
+            self, participants_set, theta_matrix, feature_matrix, round_index
+    ):
         assert self.config is not None
         # Step 1: 计算参与者的 BiFed Shapley 值
         bifed_sv_p = np.dot(feature_matrix, theta_matrix)
@@ -122,7 +122,9 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         return bifed_sv
 
     # 实现 find_optimal_bifed_sv，找到之前轮次中每个worker的最大 Shapley 值
-    def find_optimal_bifed_sv(self, max_round_index: int, non_participants: set) -> dict[int, float]:
+    def find_optimal_bifed_sv(
+            self, max_round_index: int, non_participants: set
+    ) -> dict[int, float]:
         optimal_bifed_sv = {}
 
         # 遍历每一个非参与者，寻找历史最优值
@@ -131,7 +133,10 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             # 遍历所有之前的轮次
             for round_idx in range(max_round_index + 1):
                 if worker in self.history_bifed_sv.get(round_idx, {}):
-                    max_value = max(max_value, self.history_bifed_sv[round_idx][worker])
+                    max_value = max(
+                        max_value,
+                        self.history_bifed_sv[round_idx][worker]
+                    )
 
             if max_value == float('-inf'):
                 # 如果没有找到任何历史值，赋予默认值 0
