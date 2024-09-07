@@ -16,7 +16,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.bifed_sv: dict = {}  # 初始化 bifed_sv
-        # self.bifed_sv: dict[int, dict] = {}
+        self.history_bifed_sv: dict[int, dict[int, float]] = {}  # 用于存储每轮的 bifed_sv
         self.config: None | DistributedTrainingConfig = None
 
     # 生成集合 round_participants 的所有子集
@@ -56,7 +56,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             if sorted_union_set in v_S:
                 cumulative_utility += v_S[sorted_union_set]
             else:
-                # 你可以选择记录一个警告，或者赋予默认值
+                # 如果为空，记录一个警告，或者赋予默认值
                 print(f"Warning: No utility found for subset {sorted_union_set}")
                 # 或者提供一个默认的效用值（例如0）
                 cumulative_utility += 0
@@ -101,68 +101,52 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
         return data.to_numpy()
 
-    # 计算bifed_sv, participants_set == round_N
-    def calculate_bifed_sv(self, participants_set, theta_matrix, feature_matrix):
+# 计算并保存每轮的 bifed_sv
+    def calculate_bifed_sv(self, participants_set, theta_matrix, feature_matrix, round_index):
         assert self.config is not None
-        # Step 1: Calculate the BiFedSV for participants (p)
+        # Step 1: 计算参与者的 BiFed Shapley 值
         bifed_sv_p = np.dot(feature_matrix, theta_matrix)
-        # Create a dictionary to store the results
         bifed_sv = {}
-        # Store BiFedSV for participants
         for i, participant in enumerate(participants_set):
             bifed_sv[participant] = bifed_sv_p[i]
-        # Step 2: Find the historical optimal BiFedSV for non-participants (n - p)
+
+        # Step 2: 计算非参与者的最优历史 BiFed Shapley 值
         non_participants = set(range(self.config.worker_number)) - set(participants_set)
-        bifed_sv_non_p = {}
-        for i in non_participants:
-            # Find the optimal historical BiFedSV value for the non-participants
-            bifed_sv_non_p[i] = self.find_optimal_bifed_sv()
-        # Step 3: Update BiFedSV for all participants and non-participants
-        for i in non_participants:
-            bifed_sv[i] = bifed_sv_non_p[i]
-        # Step 4: Combine and return the final BiFedSV Φ^(r) for all participants
+        bifed_sv_non_p = self.find_optimal_bifed_sv(round_index - 1, non_participants)
+
+        # Step 3: 合并所有参与者和非参与者的 Shapley 值
+        bifed_sv.update(bifed_sv_non_p)
+
+        # Step 4: 保存当前轮次的 bifed_sv
+        self.history_bifed_sv[round_index] = bifed_sv
         return bifed_sv
 
-    # def find_optimal_bifed_sv(self):
-    #     subsets = defaultdict(list)
-    #     for S_Vs in self.bifed_sv.values():
-    #         # 假设S_Vs的长度与worker_number相同，且按顺序排列
-    #         for i, S_V in enumerate(S_Vs):
-    #             subsets[i].append(S_V)
-    #
-    #             # 创建一个字典来存储最优BiFedSV
-    #     optimal_bifed_sv = {}
-    #     for i, S_Vs in subsets.items():
-    #         if S_Vs:  # 确保列表不为空
-    #             optimal_bifed_sv[i] = max(S_Vs)  # 取最大值作为最优值
-    #
-    #     return optimal_bifed_sv
-    def find_optimal_bifed_sv(self):
-        subsets = defaultdict(list)
-        for S_Vs in self.bifed_sv.values():
-            # 检查 S_Vs 是否是可迭代的对象，如果不是，则将其转换为单元素列表
-            if isinstance(S_Vs, (int, float, np.float64)):
-                S_Vs = [S_Vs]  # 转换为单元素列表
-
-            for i, S_V in enumerate(S_Vs):
-                subsets[i].append(S_V)
-
-        # 创建一个字典来存储最优BiFedSV
+    # 实现 find_optimal_bifed_sv，找到之前轮次中每个worker的最大 Shapley 值
+    def find_optimal_bifed_sv(self, max_round_index: int, non_participants: set) -> dict[int, float]:
         optimal_bifed_sv = {}
-        for i, S_Vs in subsets.items():
-            if S_Vs:  # 确保列表不为空
-                optimal_bifed_sv[i] = max(S_Vs)  # 取最大值作为最优值
 
+        # 遍历每一个非参与者，寻找历史最优值
+        for worker in non_participants:
+            max_value = float('-inf')  # 设置初始最大值为负无穷
+            # 遍历所有之前的轮次
+            for round_idx in range(max_round_index + 1):
+                if worker in self.history_bifed_sv.get(round_idx, {}):
+                    max_value = max(max_value, self.history_bifed_sv[round_idx][worker])
+
+            if max_value == float('-inf'):
+                # 如果没有找到任何历史值，赋予默认值 0
+                max_value = 0.0
+
+            optimal_bifed_sv[worker] = max_value
         return optimal_bifed_sv
 
-    # 注意：这里每轮的参与者集合是动态变化的
+    # 修改 _compute_impl 调用 calculate_bifed_sv，传入 round_index
     def _compute_impl(self, round_index: int) -> None:
-        # 获取当前轮次的参与者
         round_participants = set(self.players)
         print(f"Algorithm round participants: {round_participants}")
-        subsets = set()
 
-        # 计算每个子集的效用
+        # 计算子集和效用
+        subsets = set()
         for subset in self.generate_subsets(round_participants):
             if not subset:
                 continue
@@ -174,15 +158,10 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             for s in subsets
         }
 
-        # 从 CSV 文件中读取 theta_matrix
+        # 读取 theta_matrix
         theta_matrix = self.read_matrix_from_csv(round_participants)
-        # 检查 theta_matrix 的内容
-        if not np.issubdtype(theta_matrix.dtype, np.number):
-            raise ValueError(
-                f"theta_matrix should contain numeric values, got {theta_matrix.dtype}"
-            )
 
-        # 计算 BiFed Shapley 值
+        # 生成特征矩阵
         subset_pairs = self.generate_subset_pairs(round_participants)
         sorted_pairs = sorted(
             subset_pairs,
@@ -191,7 +170,6 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
         v_ST = {}
         feature_matrix = []
-
         for S, T in sorted_pairs:
             remaining_subsets = self.generate_remaining_subsets(
                 round_participants, S, T
@@ -202,23 +180,18 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             matrix = cumulative_utility / (
                 2 ** len(round_participants - set(S) - set(T))
             )
-            if not isinstance(matrix, (int, float)):
-                raise ValueError(
-                    f"Matrix value should be numeric, got {type(matrix)} for {(S, T)}"
-                )
-
             v_ST[(S, T)] = matrix
             feature_matrix.append(matrix)
 
-        # 计算 BiFed Shapley 值
+        # 计算并保存 BiFed Shapley 值，传入 round_index
         bifed_sv = self.calculate_bifed_sv(
-            round_participants, theta_matrix, feature_matrix
+            round_participants, theta_matrix, feature_matrix, round_index
         )
-        self.bifed_sv = bifed_sv  # 更新 bifed_sv
+        self.bifed_sv = bifed_sv  # 更新当前轮次的 bifed_sv
         log_info("bifed_sv: %s", bifed_sv)
 
     def get_result(self) -> dict:
-        return {"round_shapley_values": self.bifed_sv}
+        return {"round_shapley_values": self.history_bifed_sv}
 
 
 class BiFedShapleyValueAlgorithm(ShapleyValueAlgorithm):
