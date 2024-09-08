@@ -14,7 +14,8 @@ class BiFedSVServer(ShapleyValueServer):
         if not self.selection_result:
             return super().select_workers()
 
-        print(f"Selection result before update: {self.selection_result}")
+        # 打印当前所有轮次的选择结果
+        print(f"Selection result before update for all rounds: {self.selection_result}")
 
         assert isinstance(self.algorithm, BiFedShapleyValueAlgorithm)
         bifed_sv_algorithm = self.algorithm.sv_algorithm
@@ -37,17 +38,18 @@ class BiFedSVServer(ShapleyValueServer):
             avg_shapley_value = sum(filtered_bifed_sv.values()) / len(filtered_bifed_sv)
             print(f"Average Shapley value: {avg_shapley_value}")
 
-            # 筛选 BiFed Shapley 值大于等于平均值的参与者
+            # 筛选 BiFed Shapley 值大于等于0且大于等于平均值的参与者
             for key, value in filtered_bifed_sv.items():
-                if value >= avg_shapley_value:
+                if value >= 0 and value >= avg_shapley_value:
                     round_participants.add(key)
 
-            print(f"Round {self.round_index} participants: {round_participants}")
+            print(f"Round {self.round_index + 1} participants: {round_participants}")
         else:
             print("Warning: bifed_sv is empty. No participants selected.")
 
         # 保存本轮选择结果
-        self.selection_result[self.round_index] = round_participants
-        print(f"Selection result for round {self.round_index}: {round_participants}")
+        self.selection_result[self.round_index + 1] = round_participants  # 更新到下一轮的索引
+        print(f"Selection result after update for all rounds: {self.selection_result}")
 
         return round_participants
+

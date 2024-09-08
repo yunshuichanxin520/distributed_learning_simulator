@@ -37,5 +37,5 @@ dataset_sampling: iid
 
 #dataset_sampling: dirichlet_split
 #dataset_sampling_kwargs:
-#  concentration: 5.0
+#  concentration: 0.5
 ...

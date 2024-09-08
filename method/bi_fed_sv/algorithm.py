@@ -99,25 +99,33 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
         return data.to_numpy()
 
-# 计算并保存每轮的 bifed_sv
+    # 计算并保存每轮的 bifed_sv，并对 bifed_sv_p 标准化处理
     def calculate_bifed_sv(
             self, participants_set, theta_matrix, feature_matrix, round_index
     ):
         assert self.config is not None
+
         # Step 1: 计算参与者的 BiFed Shapley 值
         bifed_sv_p = np.dot(feature_matrix, theta_matrix)
+
+        # 对 bifed_sv_p 进行标准化处理：减去均值，除以标准差
+        bifed_sv_mean = np.mean(bifed_sv_p)
+        bifed_sv_std = np.std(bifed_sv_p)
+        bifed_sv_p = (bifed_sv_p - bifed_sv_mean) / (bifed_sv_std + 1e-8)
+
+        # Step 2: 将标准化后的值分配给参与者
         bifed_sv = {}
         for i, participant in enumerate(participants_set):
             bifed_sv[participant] = bifed_sv_p[i]
 
-        # Step 2: 计算非参与者的最优历史 BiFed Shapley 值
+        # Step 3: 计算非参与者的最优历史 BiFed Shapley 值
         non_participants = set(range(self.config.worker_number)) - set(participants_set)
         bifed_sv_non_p = self.find_optimal_bifed_sv(round_index - 1, non_participants)
 
-        # Step 3: 合并所有参与者和非参与者的 Shapley 值
+        # Step 4: 合并所有参与者和非参与者的 Shapley 值
         bifed_sv.update(bifed_sv_non_p)
 
-        # Step 4: 保存当前轮次的 bifed_sv
+        # Step 5: 保存当前轮次的 bifed_sv
         self.history_bifed_sv[round_index] = bifed_sv
         return bifed_sv
 
@@ -162,6 +170,8 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             s: self.metric_fun(tuple(self.players.index(worker_id) for worker_id in s))
             for s in subsets
         }
+        for subset, metric in result_metrics.items():
+            log_info("round %s subset %s metric %s", round_index, subset, metric)
 
         # 读取 theta_matrix
         theta_matrix = self.read_matrix_from_csv(round_participants)
@@ -173,7 +183,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             key=lambda pair: self.sort_key(pair, round_participants),
         )
 
-        v_ST = {}
+        # v_ST = {}
         feature_matrix = []
         for S, T in sorted_pairs:
             remaining_subsets = self.generate_remaining_subsets(
@@ -185,7 +195,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
             matrix = cumulative_utility / (
                 2 ** len(round_participants - set(S) - set(T))
             )
-            v_ST[(S, T)] = matrix
+            # v_ST[(S, T)] = matrix
             feature_matrix.append(matrix)
 
         # 计算并保存 BiFed Shapley 值，传入 round_index
