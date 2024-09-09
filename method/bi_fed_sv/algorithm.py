@@ -107,13 +107,40 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
         # Step 1: 计算参与者的 BiFed Shapley 值
         bifed_sv_p = np.dot(feature_matrix, theta_matrix)
+        print(f"bifed_sv_p before: {bifed_sv_p}")
 
-        # 对 bifed_sv_p 进行标准化处理：减去均值，除以标准差
-        bifed_sv_mean = np.mean(bifed_sv_p)
-        bifed_sv_std = np.std(bifed_sv_p)
-        bifed_sv_p = (bifed_sv_p - bifed_sv_mean) / (bifed_sv_std + 1e-8)
+        # # 第一种，对 bifed_sv_p 进行标准化处理,消除参与者集合规模对结果的影响
+        # 首先要计算贡献度，还要乘以参与者比例系数（当前参与者个数/总的参与者个数）
+        # 计算矩阵中所有元素的总和
+        total_sum = np.sum(bifed_sv_p)
+        # 对矩阵中的每个元素除以总和,求贡献度，消除总收益不断增加带来的影响
+        bifed_sv_p = bifed_sv_p / (total_sum + 1e-8)
+        print(f"bifed_sv_p mid: {bifed_sv_p}")
+        # 乘以比例系数，消除集合大小的影响
+        a = len(participants_set)/self.config.worker_number
+        bifed_sv_p = a*bifed_sv_p
+        print(f"bifed_sv_p after: {bifed_sv_p}")
 
-        # Step 2: 将标准化后的值分配给参与者
+        # # 第二种，对 bifed_sv_p 进行标准化处理：减去均值，除以标准差
+        # bifed_sv_mean = np.mean(bifed_sv_p)
+        # bifed_sv_std = np.std(bifed_sv_p)
+        # bifed_sv_p = (bifed_sv_p - bifed_sv_mean) / (bifed_sv_std + 1e-8)
+        # print(f"bifed_sv_p after: {bifed_sv_p}")
+
+        # # 第三种，对 bifed_sv_p 进行标准化处理：除以总和
+        # # 计算矩阵中所有元素的总和
+        # total_sum = np.sum(bifed_sv_p)
+        # # 对矩阵中的每个元素除以总和
+        # bifed_sv_p = bifed_sv_p / (total_sum + 1e-8)
+        # print(f"bifed_sv_p after: {bifed_sv_p}")
+
+        # 第四种，对 bifed_sv_p 进行归一化处理：除以总和
+        # bifed_sv_p = (
+        #         (bifed_sv_p - np.min(bifed_sv_p)) /
+        #         (np.max(bifed_sv_p) - np.min(bifed_sv_p))
+        # )
+        # print(f"bifed_sv_p after: {bifed_sv_p}"
+        # Step 2: 将标准（归一）化后的值分配给参与者
         bifed_sv = {}
         for i, participant in enumerate(participants_set):
             bifed_sv[participant] = bifed_sv_p[i]
