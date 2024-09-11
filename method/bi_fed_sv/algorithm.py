@@ -84,7 +84,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
     def read_matrix_from_csv(self, round_participants):
         """从CSV文件中读取矩阵"""
         data_dir = os.path.join(os.path.dirname(__file__), "tmp", "theta_n")
-        print(data_dir)
+        # print(data_dir)
         data_file = os.path.join(
             data_dir, "theta_{}.csv".format(len(round_participants))
         )
@@ -107,7 +107,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
 
         # Step 1: 计算参与者的 BiFed Shapley 值
         bifed_sv_p = np.dot(feature_matrix, theta_matrix)
-        print(f"bifed_sv_p before: {bifed_sv_p}")
+        # print(f"bifed_sv_p before: {bifed_sv_p}")
 
         # # 第一种，对 bifed_sv_p 进行标准化处理,消除参与者集合规模对结果的影响
         # 首先要计算贡献度，还要乘以参与者比例系数（当前参与者个数/总的参与者个数）
@@ -115,11 +115,11 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         total_sum = np.sum(bifed_sv_p)
         # 对矩阵中的每个元素除以总和,求贡献度，消除总收益不断增加带来的影响
         bifed_sv_p = bifed_sv_p / (total_sum + 1e-8)
-        print(f"bifed_sv_p mid: {bifed_sv_p}")
+        # print(f"bifed_sv_p mid: {bifed_sv_p}")
         # 乘以比例系数，消除集合大小的影响
         a = len(participants_set)/self.config.worker_number
         bifed_sv_p = a*bifed_sv_p
-        print(f"bifed_sv_p after: {bifed_sv_p}")
+        # print(f"bifed_sv_p after: {bifed_sv_p}")
 
         # # 第二种，对 bifed_sv_p 进行标准化处理：减去均值，除以标准差
         # bifed_sv_mean = np.mean(bifed_sv_p)
