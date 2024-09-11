@@ -36,6 +36,6 @@ learning_rate: 0.1
 
 dataset_sampling: dirichlet_split
 dataset_sampling_kwargs:
-  concentration: 0.5
+  concentration: 10
 
 ...
