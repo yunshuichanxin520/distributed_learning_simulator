@@ -156,30 +156,68 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         self.history_bifed_sv[round_index] = bifed_sv
         return bifed_sv
 
-    # 实现 find_optimal_bifed_sv，找到之前轮次中每个worker的最大 Shapley 值
-    def find_optimal_bifed_sv(
-            self, max_round_index: int, non_participants: set
-    ) -> dict[int, float]:
-        optimal_bifed_sv = {}
+    # # 实现 find_optimal_bifed_sv，找到之前轮次中每个worker的最大 Shapley 值
+    # def find_optimal_bifed_sv(
+    #         self, max_round_index: int, non_participants: set
+    # ) -> dict[int, float]:
+    #     optimal_bifed_sv = {}
+    #
+    #     # 遍历每一个非参与者，寻找历史最优值
+    #     for worker in non_participants:
+    #         max_value = float('-inf')  # 设置初始最大值为负无穷
+    #         # 遍历所有之前的轮次
+    #         for round_idx in range(max_round_index + 1):
+    #             if worker in self.history_bifed_sv.get(round_idx, {}):
+    #                 max_value = max(
+    #                     max_value,
+    #                     self.history_bifed_sv[round_idx][worker]
+    #                 )
+    #
+    #         if max_value == float('-inf'):
+    #             # 如果没有找到任何历史值，赋予默认值 0
+    #             max_value = 0.0
+    #
+    #         optimal_bifed_sv[worker] = max_value
+    #     return optimal_bifed_sv
 
-        # 遍历每一个非参与者，寻找历史最优值
+    #找出历史平均值最大的作为当前的最优值
+    def find_optimal_bifed_sv(self, max_round_index: int, non_participants: set) -> dict[int, float]:
+        """
+        计算每个非参与者worker到指定轮次之前（包括指定轮次）所有轮次中Shapley值的平均值。
+
+        Args:
+            max_round_index (int): 考虑的最后一个轮次的索引（包含此轮次的数据，如果有的话）。
+            non_participants (set): 非参与者worker的ID集合。
+
+        Returns:
+            dict[int, float]: 映射worker ID到其平均Shapley值的字典。
+        """
+        if not hasattr(self, 'history_bifed_sv') or not isinstance(self.history_bifed_sv, dict):
+            raise AttributeError("The 'history_bifed_sv' attribute must be a dictionary.")
+
+        avg_bifed_sv = {}
+
         for worker in non_participants:
-            max_value = float('-inf')  # 设置初始最大值为负无穷
-            # 遍历所有之前的轮次
+            total_value = 0.0  # 用于累加worker的Shapley值
+            count = 0  # 用于记录worker参与计算的轮次数
+
+            # 遍历到指定轮次为止的所有轮次
             for round_idx in range(max_round_index + 1):
+                # 检查当前轮次中是否有该worker的数据
                 if worker in self.history_bifed_sv.get(round_idx, {}):
-                    max_value = max(
-                        max_value,
-                        self.history_bifed_sv[round_idx][worker]
-                    )
+                    total_value += self.history_bifed_sv[round_idx][worker]  # 累加Shapley值
+                    count += 1  # 增加轮次数
 
-            if max_value == float('-inf'):
-                # 如果没有找到任何历史值，赋予默认值 0
-                max_value = 0.0
+            # 计算平均值，并处理除以零的情况
+            if count > 0:
+                avg_value = total_value / count  # 计算平均值
+            else:
+                avg_value = 0.0  # 如果没有数据，则平均值为0
 
-            optimal_bifed_sv[worker] = max_value
-        return optimal_bifed_sv
+            # 将worker的ID和对应的平均值存入结果字典
+            avg_bifed_sv[worker] = avg_value
 
+        return avg_bifed_sv
     # 修改 _compute_impl 调用 calculate_bifed_sv，传入 round_index
     def _compute_impl(self, round_index: int) -> None:
         round_participants = set(self.players)
