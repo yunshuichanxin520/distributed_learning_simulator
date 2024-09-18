@@ -1,0 +1,49 @@
+---
+dataset_name: ag_news
+model_name: TransformerClassificationModel
+distributed_algorithm: GTG_shapley_value
+optimizer_name: SGD
+worker_number: 6
+batch_size: 64
+round: 100
+learning_rate_scheduler_name: CosineAnnealingLR
+epoch: 5
+learning_rate: 0.01
+dataset_kwargs:
+  input_max_len: 300
+  dataset_type: text
+  tokenizer:
+    type: spacy
+model_kwargs:
+  word_vector_name: glove.6B.100d
+  num_encoder_layer: 2
+  d_model: 100
+  nhead: 5
+  frozen_modules:
+    names: [embedding]
+
+#dataset_sampling: iid
+
+#dataset_sampling: iid_split_and_sample
+#dataset_sampling_kwargs:
+#   sample_probs:
+#      - {0: 0.1, 1: 0.1}
+#      - {0: 0.1, 1: 0.1}
+#      - {0: 0.5, 1: 0.5}
+#      - {0: 0.5, 1: 0.5}
+#      - {0: 0.9, 1: 0.9}
+#      - {0: 0.9, 1: 0.9}
+
+dataset_sampling: iid_split_and_flip
+dataset_sampling_kwargs:
+  flip_percent:
+    - 0.01
+    - 0.01
+    - 0.1
+    - 0.1
+    - 0.2
+    - 0.2
+
+#dataset_sampling: dirichlet_split
+#dataset_sampling_kwargs:
+#  concentration: 5.0
