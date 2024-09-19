@@ -74,8 +74,10 @@ class IntervalShapleyValue(RoundBasedShapleyValue):
             M_MIN.append(interval_min[subset])
             # 从interval_max提取值并添加到M_MAX
             M_MAX.append(interval_max[subset])
-        print(M_MIN)
-        print(M_MAX)
+        # print(M_MIN)
+        # print(M_MAX)
+        log_info("M_MIN %s ", M_MIN)
+        log_info("M_MAX %s ", M_MAX)
         # 导入E和F 维度（1024，10）目前先这样,后边可以尝试连接matlab自动生成(参数是_lambda和players)
         script_dir = os.path.dirname(__file__)
         E = pd.read_excel(os.path.join(script_dir, "data_E_F", "E_6_1.xls"))
