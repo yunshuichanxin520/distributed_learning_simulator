@@ -17,7 +17,7 @@ class BiFedShapleyValue(RoundBasedShapleyValue):
         self.history_bifed_sv: dict[int, dict[int, float]] = {}  # 用于存储每轮的 bifed_sv
         self.config: None | DistributedTrainingConfig = None
 
-    # 生成集合 round_participants 的所有子集
+    # 生成集合 round_participants 所有子集
     def generate_subsets(self, round_participants):
         subsets = []
         for i in range(len(round_participants) + 1):
